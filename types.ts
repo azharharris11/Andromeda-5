@@ -225,11 +225,13 @@ export interface ProjectContext {
   
   // New Strategic Inputs
   targetCountry?: string; 
-  brandVoice?: string; 
+  brandVoice?: string;
+  brandVoiceOptions?: string[]; // NEW: AI generated options
   funnelStage?: FunnelStage;
   
   // NEW: Deep Strategy Inputs
-  offer?: string; 
+  offer?: string;
+  offerOptions?: string[]; // NEW: AI generated options
   marketAwareness?: MarketAwareness;
   copyFramework?: CopyFramework;
 }

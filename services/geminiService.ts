@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { ProjectContext, CreativeFormat, AdCopy, CreativeConcept, GenResult, StoryOption, BigIdeaOption, MechanismOption } from "../types";
 
@@ -286,7 +287,9 @@ export const analyzeLandingPageContext = async (markdown: string): Promise<Proje
           targetAudience: { type: Type.STRING, description: "Specific demographics and psychographics." },
           targetCountry: { type: Type.STRING },
           brandVoice: { type: Type.STRING },
-          offer: { type: Type.STRING, description: "The primary hook or deal found on the page." }
+          brandVoiceOptions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5 distinct brand voice options based on the content tone." },
+          offer: { type: Type.STRING, description: "The primary hook or deal found on the page." },
+          offerOptions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5 potential offer angles or deal structures inferred." }
         },
         required: ["productName", "productDescription", "targetAudience"]
       }
@@ -301,7 +304,9 @@ export const analyzeLandingPageContext = async (markdown: string): Promise<Proje
     targetAudience: data.targetAudience || "General Audience",
     targetCountry: data.targetCountry || "USA",
     brandVoice: data.brandVoice || "Professional",
+    brandVoiceOptions: data.brandVoiceOptions || [],
     offer: data.offer || "Shop Now",
+    offerOptions: data.offerOptions || [],
     landingPageUrl: "" 
   } as ProjectContext;
 };
@@ -314,7 +319,7 @@ export const analyzeImageContext = async (base64Image: string): Promise<ProjectC
     contents: {
       parts: [
         { inlineData: { mimeType: "image/jpeg", data: base64Data } },
-        { text: "Analyze this product image. Extract the Product Name (if visible, otherwise guess), a compelling Description, and the likely Target Audience." }
+        { text: "Analyze this product image. Extract the Product Name, Description, Target Audience. Also infer the Brand Voice (and 5 options) and potential Offers (and 5 options) suitable for this visual style." }
       ]
     },
     config: {
@@ -325,7 +330,11 @@ export const analyzeImageContext = async (base64Image: string): Promise<ProjectC
           productName: { type: Type.STRING },
           productDescription: { type: Type.STRING },
           targetAudience: { type: Type.STRING },
-          targetCountry: { type: Type.STRING }
+          targetCountry: { type: Type.STRING },
+          brandVoice: { type: Type.STRING },
+          brandVoiceOptions: { type: Type.ARRAY, items: { type: Type.STRING } },
+          offer: { type: Type.STRING },
+          offerOptions: { type: Type.ARRAY, items: { type: Type.STRING } }
         },
         required: ["productName", "productDescription"]
       }
@@ -338,9 +347,11 @@ export const analyzeImageContext = async (base64Image: string): Promise<ProjectC
     productName: data.productName || "Analyzed Product",
     productDescription: data.productDescription || "A revolutionary product.",
     targetAudience: data.targetAudience || "General Audience",
-    targetCountry: "USA", 
-    brandVoice: "Visual & Aesthetic",
-    offer: "Check it out"
+    targetCountry: data.targetCountry || "USA", 
+    brandVoice: data.brandVoice || "Visual & Aesthetic",
+    brandVoiceOptions: data.brandVoiceOptions || [],
+    offer: data.offer || "Check it out",
+    offerOptions: data.offerOptions || []
   } as ProjectContext;
 };
 

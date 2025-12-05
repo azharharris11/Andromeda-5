@@ -1,7 +1,8 @@
 
+
 import React, { useState, useRef } from 'react';
 import { HashRouter } from 'react-router-dom';
-import { Layers, Settings, Activity, Microscope, ShieldCheck, X, RefreshCw, Globe, Sparkles, Image as ImageIcon, Upload, Package, Megaphone, Filter, Target, FileText, MapPin, Info, Smartphone } from 'lucide-react';
+import { Layers, Settings, Activity, Microscope, ShieldCheck, X, RefreshCw, Globe, Sparkles, Image as ImageIcon, Upload, Package, Megaphone, Filter, Target, FileText, MapPin, Info, Smartphone, ChevronDown } from 'lucide-react';
 import Canvas, { CanvasHandle } from './components/Canvas';
 import Node from './components/Node';
 import Inspector from './components/Inspector';
@@ -15,10 +16,12 @@ const INITIAL_PROJECT: ProjectContext = {
   targetAudience: "Students, Programmers, and Creatives.",
   targetCountry: "USA",
   brandVoice: "Witty, Smart, but Approachable",
+  brandVoiceOptions: ["Witty, Smart, but Approachable", "Professional & Scientific", "Gen-Z & Meme-Friendly", "Minimalist & Zen", "High-Energy & Aggressive"],
   funnelStage: FunnelStage.TOF,
   marketAwareness: MarketAwareness.PROBLEM_AWARE,
   copyFramework: CopyFramework.PAS,
-  offer: "Buy 2 Get 1 Free"
+  offer: "Buy 2 Get 1 Free",
+  offerOptions: ["Buy 2 Get 1 Free", "50% Off First Order", "Free Shipping Worldwide", "Bundle & Save 30%", "$10 Welcome Coupon"]
 };
 
 const FORMAT_GROUPS: Record<string, CreativeFormat[]> = {
@@ -75,6 +78,49 @@ const FORMAT_GROUPS: Record<string, CreativeFormat[]> = {
     CreativeFormat.WHITEBOARD,
     CreativeFormat.REDDIT_THREAD
   ]
+};
+
+// UI Component for Editable Dropdowns (Brand Voice & Offer)
+const EditableSelect = ({ label, value, onChange, options, placeholder }: { label: string, value: string, onChange: (val: string) => void, options: string[], placeholder: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="relative group">
+      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{label}</label>
+      <div className="relative">
+        <input 
+          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all pr-8"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        />
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-blue-600 transition-colors"
+        >
+          <ChevronDown className="w-4 h-4" />
+        </button>
+      </div>
+      {isOpen && options && options.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-[200px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+          {options.map((opt, i) => (
+            <button
+              key={i}
+              className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 border-b border-slate-50 last:border-0 transition-colors"
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent blur clearing before click registers
+                onChange(opt);
+                setIsOpen(false);
+              }}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const App = () => {
@@ -177,6 +223,10 @@ const App = () => {
               productDescription: context.productDescription,
               targetAudience: context.targetAudience,
               targetCountry: context.targetCountry || project.targetCountry,
+              brandVoice: context.brandVoice,
+              brandVoiceOptions: context.brandVoiceOptions,
+              offer: context.offer,
+              offerOptions: context.offerOptions,
               landingPageUrl: landingPageUrl
           });
 
@@ -212,7 +262,11 @@ const App = () => {
                   productName: context.productName,
                   productDescription: context.productDescription,
                   targetAudience: context.targetAudience,
-                  targetCountry: context.targetCountry || project.targetCountry
+                  targetCountry: context.targetCountry || project.targetCountry,
+                  brandVoice: context.brandVoice,
+                  brandVoiceOptions: context.brandVoiceOptions,
+                  offer: context.offer,
+                  offerOptions: context.offerOptions,
               });
 
                // Update Root Node
@@ -908,12 +962,22 @@ const App = () => {
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-pink-500"/> Strategic Direction</h3>
                 <div className="grid grid-cols-2 gap-6">
                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Brand Voice</label>
-                        <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" value={project.brandVoice || ''} onChange={e => setProject({...project, brandVoice: e.target.value})} placeholder="e.g. Witty, Gen-Z, Professional" />
+                        <EditableSelect 
+                            label="Brand Voice" 
+                            value={project.brandVoice || ''} 
+                            onChange={(val) => setProject({...project, brandVoice: val})} 
+                            options={project.brandVoiceOptions || []} 
+                            placeholder="e.g. Witty, Gen-Z" 
+                        />
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">The Offer</label>
-                        <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" value={project.offer || ''} onChange={e => setProject({...project, offer: e.target.value})} placeholder="e.g. 50% Off, Buy 1 Get 1" />
+                        <EditableSelect 
+                            label="The Offer" 
+                            value={project.offer || ''} 
+                            onChange={(val) => setProject({...project, offer: val})} 
+                            options={project.offerOptions || []} 
+                            placeholder="e.g. 50% Off" 
+                        />
                     </div>
                     <div className="col-span-2 grid grid-cols-2 gap-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
                         <div>
