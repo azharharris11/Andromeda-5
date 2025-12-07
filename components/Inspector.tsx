@@ -1,8 +1,8 @@
 
 import React, { useState, useRef } from 'react';
 import { NodeData, AdCopy, ProjectContext, CampaignStage } from '../types';
-import { X, ThumbsUp, MessageCircle, Share2, Globe, MoreHorizontal, Download, Smartphone, Layout, Sparkles, BrainCircuit, Mic, Play, Pause, Wand2, ChevronLeft, ChevronRight, Layers, RefreshCw, Archive, Clock, ShieldAlert, BarChart3, AlertTriangle, Activity, CheckCircle2, Video, Film, Loader2 } from 'lucide-react';
-import { generateAdScript, generateVoiceover, generateVeoVideo, auditHeadlineSabri } from '../services/geminiService';
+import { X, ThumbsUp, MessageCircle, Share2, Globe, MoreHorizontal, Download, Smartphone, Layout, Sparkles, BrainCircuit, Mic, Play, Pause, Wand2, ChevronLeft, ChevronRight, Layers, RefreshCw, Archive, Clock, ShieldAlert, BarChart3, AlertTriangle, Activity, CheckCircle2, Video, Film, Loader2, DollarSign } from 'lucide-react';
+import { generateAdScript, generateVoiceover, generateVeoVideo, auditHeadlineSabri, generateMafiaOffer } from '../services/geminiService';
 
 interface InspectorProps {
   node: NodeData;
@@ -29,13 +29,14 @@ const decodeAudioData = async (base64: string, ctx: AudioContext): Promise<Audio
 };
 
 const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdate, onRegenerate, onPromote, project }) => {
-  const { adCopy, imageUrl, carouselImages, title, format, postId, aiInsight, audioScript, audioBase64, stage, prediction, testingTier, variableIsolated, congruenceRationale, videoUrl } = node;
+  const { adCopy, imageUrl, carouselImages, title, format, postId, aiInsight, audioScript, audioBase64, stage, prediction, testingTier, variableIsolated, congruenceRationale, videoUrl, mafiaOffer } = node;
   const [activeTab, setActiveTab] = useState<'PREVIEW' | 'INSIGHTS' | 'AUDIO' | 'VIDEO'>('PREVIEW');
   const [aspectRatio, setAspectRatio] = useState<'SQUARE' | 'VERTICAL'>('SQUARE');
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isAuditingHeadline, setIsAuditingHeadline] = useState(false);
+  const [isGeneratingMafia, setIsGeneratingMafia] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0); 
   
@@ -101,6 +102,16 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
       
       onUpdate(node.id, { prediction: updatedPrediction as any });
       setIsAuditingHeadline(false);
+  };
+
+  const handleGenerateMafiaOffer = async () => {
+      if (!onUpdate || !project) return;
+      setIsGeneratingMafia(true);
+      const result = await generateMafiaOffer(project);
+      if (result.data) {
+          onUpdate(node.id, { mafiaOffer: result.data });
+      }
+      setIsGeneratingMafia(false);
   };
 
   const handlePlayAudio = async () => {
@@ -325,6 +336,35 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
                      </>
                  ) : (<div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-slate-500 text-xs text-center">Run an Audit to get a Prediction Score.</div>)}
                  
+                 {/* MAFIA OFFER GENERATOR */}
+                 <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl text-white">
+                      <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-sm font-bold flex items-center gap-2 text-amber-500"><DollarSign className="w-4 h-4" /> The Mafia Offer</h3>
+                          <button onClick={handleGenerateMafiaOffer} disabled={isGeneratingMafia} className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded border border-slate-700 transition-colors flex items-center gap-1">
+                              {isGeneratingMafia ? <Loader2 className="w-3 h-3 animate-spin"/> : <Wand2 className="w-3 h-3"/>}
+                              {mafiaOffer ? 'Regenerate' : 'Generate'}
+                          </button>
+                      </div>
+                      
+                      {mafiaOffer ? (
+                          <div className="space-y-3">
+                              <div className="text-sm font-bold leading-tight">"{mafiaOffer.headline}"</div>
+                              <div className="space-y-1">
+                                  {mafiaOffer.valueStack.map((item, i) => (
+                                      <div key={i} className="text-[10px] text-slate-300 flex items-start gap-1">
+                                          <span className="text-amber-500 font-bold">•</span> {item}
+                                      </div>
+                                  ))}
+                              </div>
+                              <div className="text-[10px] text-emerald-400 font-mono border border-emerald-900 bg-emerald-900/20 p-2 rounded">
+                                  Guarantee: {mafiaOffer.riskReversal}
+                              </div>
+                          </div>
+                      ) : (
+                          <p className="text-[11px] text-slate-400 italic">"Make them an offer they can't refuse." - Sabri Suby.</p>
+                      )}
+                 </div>
+
                  {/* STRATEGIC ANALYSIS */}
                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
                      <div className="flex items-center justify-between mb-3">

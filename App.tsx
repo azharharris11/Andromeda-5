@@ -31,16 +31,17 @@ const STRATEGIC_GROUPS: Record<string, CreativeFormat[]> = {
     CreativeFormat.UGLY_VISUAL,       
     CreativeFormat.REDDIT_THREAD,     
     CreativeFormat.TWITTER_REPOST, 
-    CreativeFormat.OLD_ME_VS_NEW_ME, // NEW: Visual Storytelling
-    CreativeFormat.PRESS_FEATURE,    // NEW: Authority stops scroll
+    CreativeFormat.OLD_ME_VS_NEW_ME, 
+    CreativeFormat.PRESS_FEATURE,    
     CreativeFormat.MS_PAINT,          
     CreativeFormat.HANDHELD_TWEET,
     CreativeFormat.EDUCATIONAL_RANT 
   ],
 
   "🟠 Education & Social Proof (Build Trust)": [
-    CreativeFormat.VENN_DIAGRAM,         // NEW: Quick Logic
-    CreativeFormat.TESTIMONIAL_HIGHLIGHT,// NEW: Skimmable Proof
+    CreativeFormat.VENN_DIAGRAM,         
+    CreativeFormat.TESTIMONIAL_HIGHLIGHT,
+    CreativeFormat.LEAD_MAGNET_3D, // NEW: Sabri HVCO
     CreativeFormat.CAROUSEL_EDUCATIONAL, 
     CreativeFormat.CAROUSEL_REAL_STORY,  
     CreativeFormat.US_VS_THEM,           
@@ -225,7 +226,7 @@ const App = () => {
                  visualConcept = conceptResult.data;
 
                  updateNode(node.id, { description: "Copywriter: Drafting..." });
-                 const copyResult = await generateAdCopy(project, parentNode.meta || { name: personaToUse }, visualConcept);
+                 const copyResult = await generateAdCopy(project, parentNode.meta || { name: personaToUse }, visualConcept, fmt);
                  accumulatedInput += copyResult.inputTokens;
                  accumulatedOutput += copyResult.outputTokens;
                  finalAdCopy = copyResult.data;
@@ -248,7 +249,7 @@ const App = () => {
                      accumulatedOutput += conceptResult.outputTokens;
                      visualConcept = conceptResult.data;
                      
-                     const copyResult = await generateAdCopy(project, { name: personaToUse }, visualConcept);
+                     const copyResult = await generateAdCopy(project, { name: personaToUse }, visualConcept, fmt);
                      accumulatedInput += copyResult.inputTokens;
                      accumulatedOutput += copyResult.outputTokens;
                      finalAdCopy = copyResult.data;

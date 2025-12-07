@@ -35,8 +35,9 @@ export enum CreativeFormat {
   BEFORE_AFTER = 'Before & After',
   WHITEBOARD = 'Whiteboard',
   EDUCATIONAL_RANT = 'Green Screen Rant',
-  OLD_ME_VS_NEW_ME = 'Old Me vs New Me', // NEW
-  PRESS_FEATURE = 'Press/Media Feature', // NEW
+  OLD_ME_VS_NEW_ME = 'Old Me vs New Me', 
+  PRESS_FEATURE = 'Press/Media Feature', 
+  LEAD_MAGNET_3D = '3D Book/Report Mockup', // NEW: Sabri Style
 
   // --- NATIVE / SOCIAL ---
   TWITTER_REPOST = 'Twitter Repost',
@@ -54,8 +55,8 @@ export enum CreativeFormat {
 
   // --- LOGIC / CONVERSION ---
   US_VS_THEM = 'Us vs Them',
-  VENN_DIAGRAM = 'Venn Diagram', // NEW
-  TESTIMONIAL_HIGHLIGHT = 'Highlighted Review', // NEW
+  VENN_DIAGRAM = 'Venn Diagram', 
+  TESTIMONIAL_HIGHLIGHT = 'Highlighted Review', 
   GRAPH_CHART = 'Data Visual',
   TIMELINE_JOURNEY = 'Timeline',
   BENEFIT_POINTERS = 'Benefit Anatomy', 
@@ -113,6 +114,13 @@ export interface PredictionMetrics {
   sabriAudit?: string; 
 }
 
+export interface MafiaOffer {
+    headline: string;
+    valueStack: string[];
+    riskReversal: string;
+    scarcity: string;
+}
+
 export interface AdCopy {
   primaryText: string;
   headline: string;
@@ -161,6 +169,7 @@ export interface NodeData {
   mechanismData?: MechanismOption;
   hookData?: string;
   hvcoData?: HVCOOption;
+  mafiaOffer?: MafiaOffer;
   
   // Creative specific
   imageUrl?: string; 

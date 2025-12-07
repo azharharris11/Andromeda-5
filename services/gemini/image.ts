@@ -131,13 +131,39 @@ export const generateCreativeImage = async (
       finalPrompt = `A simple, minimalist Venn Diagram graphic on a solid, clean background. Left Circle Label: "Competitors" or "Others". Right Circle Label: "${project.productName}". The Intersection (Middle) contains the key benefit: "${angle}". Style: Corporate Memphis flat design or clean line art. High contrast text. The goal is to show that ONLY this product has the winning combination. ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
   }
   else if (format === CreativeFormat.PRESS_FEATURE) {
-      finalPrompt = `A realistic digital screenshot of an online news article featuring ${project.productName}. Header shows a generic credible media logo (e.g., 'Daily News' or 'TechLife'). Headline reads: "${angle}". The article body contains a high-quality photo of the product embedded. Vibe: Trustworthy, Authority, 'As Seen In'. ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
+      finalPrompt = `
+        A realistic digital screenshot of an online news article.
+        Header: A recognized GENERIC media logo (like 'Daily Health', 'TechInsider' - DO NOT use the product logo in the header).
+        Headline: "${angle}".
+        Image: High-quality candid photo of ${project.productName} embedded in the article body.
+        Vibe: It must look like an editorial piece, NOT an advertisement. Trustworthy, "As seen in".
+        ${appliedEnhancer} ${SAFETY_GUIDELINES}
+      `;
   }
   else if (format === CreativeFormat.TESTIMONIAL_HIGHLIGHT) {
-      finalPrompt = `A close-up shot of a printed customer review or a digital review card on paper texture. The text reads a testimonial about ${project.productName}. The specific phrase "${angle}" is HIGHLIGHTED with a bright neon yellow or pink marker. The rest of the text is slightly blurred to focus attention on the highlight. Vibe: Authentic social proof. ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
+      finalPrompt = `
+        A close-up shot of a printed customer review on a piece of paper or a sticky note.
+        Text: "${angle}".
+        Key phrases are HIGHLIGHTED in bright neon yellow marker.
+        Background: A messy desk or kitchen counter (Native/UGC vibe).
+        IMPORTANT: NO Brand Logos overlay. Just the raw text and highlight.
+        ${appliedEnhancer} ${SAFETY_GUIDELINES}
+      `;
   }
   else if (format === CreativeFormat.OLD_ME_VS_NEW_ME) {
       finalPrompt = `A split-screen comparison image. Left Side labeled "Old Me": Shows the 'old habit' or competitor product being thrown in a trash can, or sitting in a gloomy, messy, grey environment. Right Side labeled "New Me": Shows ${project.productName} in a bright, organized, glowing environment. Emotion: Frustration vs Relief. Text Overlay: "Them" vs "Us" or "Before" vs "After". ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
+  }
+  // NEW: SABRI SUBY HVCO VISUAL
+  else if (format === CreativeFormat.LEAD_MAGNET_3D) {
+      finalPrompt = `
+        A high-quality 3D render of a physical book or spiral-bound report sitting on a modern wooden desk.
+        Title on Cover: "${angle}" (Make text big and legible).
+        Cover Design: Bold typography, authoritative colors (Red/Black or Deep Blue/Gold), "Best-Seller" vibe.
+        Lighting: Cinematic, golden hour lighting hitting the cover.
+        Background: Blurry office background implies a professional wrote this.
+        No digital screens. Make it look like a physical, expensive package.
+        ${appliedEnhancer} ${SAFETY_GUIDELINES}
+      `;
   }
 
   // === OTHER FORMATS ===

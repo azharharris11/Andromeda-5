@@ -1,6 +1,6 @@
 
 import { Type } from "@google/genai";
-import { ProjectContext, GenResult, StoryOption, BigIdeaOption, MechanismOption, HVCOOption } from "../../types";
+import { ProjectContext, GenResult, StoryOption, BigIdeaOption, MechanismOption, HVCOOption, MafiaOffer } from "../../types";
 import { ai, extractJSON } from "./client";
 
 export const auditHeadlineSabri = async (headline: string, audience: string): Promise<string> => {
@@ -27,6 +27,64 @@ export const auditHeadlineSabri = async (headline: string, audience: string): Pr
   });
   
   return response.text || "Audit failed.";
+};
+
+export const generateMafiaOffer = async (project: ProjectContext): Promise<GenResult<MafiaOffer>> => {
+  const model = "gemini-2.5-flash";
+  
+  const prompt = `
+    ROLE: Sabri Suby (Offer Architect).
+    
+    CONTEXT:
+    Product: ${project.productName}
+    Current Offer: ${project.offer}
+    Target Audience: ${project.targetAudience}
+    
+    TASK:
+    Transform the boring current offer into a "MAFIA OFFER" (An offer they can't refuse).
+    
+    FORMULA:
+    1. BOLD PROMISE: Specific outcome with a timeline (Quantified End Result).
+    2. VALUE STACK: Add bonuses that handle objections (e.g., "Free Meal Plan", "24/7 Support"). Assign a fake $$$ value to each.
+    3. RISK REVERSAL: A crazy guarantee (e.g., "If you don't like it, I'll pay you $100").
+    4. SCARCITY: A reason to act now.
+    
+    EXAMPLE:
+    Boring: "Hire our agency."
+    Mafia: "We will double your leads in 90 days or we work for FREE until we do. Plus, get our $2k Audit Script as a bonus."
+    
+    OUTPUT JSON:
+    {
+        "headline": "The 1-Sentence Mafia Hook",
+        "valueStack": ["Bonus 1 ($Val)", "Bonus 2 ($Val)", "Bonus 3 ($Val)"],
+        "riskReversal": "The 'Sleep Like A Baby' Guarantee",
+        "scarcity": "Why it expires soon"
+    }
+  `;
+
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          headline: { type: Type.STRING },
+          valueStack: { type: Type.ARRAY, items: { type: Type.STRING } },
+          riskReversal: { type: Type.STRING },
+          scarcity: { type: Type.STRING }
+        },
+        required: ["headline", "valueStack", "riskReversal"]
+      }
+    }
+  });
+
+  return {
+      data: extractJSON<MafiaOffer>(response.text || "{}"),
+      inputTokens: response.usageMetadata?.promptTokenCount || 0,
+      outputTokens: response.usageMetadata?.candidatesTokenCount || 0
+  };
 };
 
 export const generateBigIdeas = async (project: ProjectContext, story: StoryOption): Promise<GenResult<BigIdeaOption[]>> => {
@@ -191,15 +249,19 @@ export const generateAngles = async (project: ProjectContext, personaName: strin
     Target Country: ${project.targetCountry}
     
     TASK:
-    1. "Gather Data": Brainstorm 10 raw angles/hooks.
-    2. "Prioritize": Rank by Market Size, Urgency, Differentiation.
-    3. "Assign Tier": Assign a Testing Tier to each angle based on its nature:
-       - TIER 1 (Concept Isolation): Big, bold, new ideas. High risk/reward.
-       - TIER 2 (Persona Isolation): Specifically tailored to this persona's fear/desire.
-       - TIER 3 (Sprint Isolation): A simple iteration or direct offer.
+    Brainstorm 10 raw angles/hooks using these specific psychological frames:
+    
+    1. THE NEGATIVE ANGLE (Crucial): Focus on what they want to AVOID. (e.g., "Stop wasting money on X", "No more back pain").
+    2. THE TECHNICAL ANGLE: Use a specific scientific term/ingredient (e.g., "Cortisol", "Blue Light").
+    3. THE DESIRE ANGLE: Pure benefit/transformation.
+
+    Then, Prioritize & Assign Tiers:
+    - TIER 1 (Concept Isolation): Big, bold, new ideas. High risk/reward.
+    - TIER 2 (Persona Isolation): Specifically tailored to this persona's fear/desire.
+    - TIER 3 (Sprint Isolation): A simple iteration or direct offer.
     
     OUTPUT:
-    Return ONLY the Top 3 High-Potential Insights.
+    Return ONLY the Top 3 High-Potential Insights (Ensure at least 1 is a NEGATIVE ANGLE).
     
     *For ${project.targetCountry}: Ensure the angles fit the local culture.*
   `;

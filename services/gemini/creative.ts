@@ -128,11 +128,30 @@ export const generateCreativeConcept = async (
 export const generateAdCopy = async (
   project: ProjectContext, 
   persona: any, 
-  concept: CreativeConcept
+  concept: CreativeConcept,
+  format?: CreativeFormat
 ): Promise<GenResult<AdCopy>> => {
   const model = "gemini-2.5-flash";
   const country = project.targetCountry || "USA";
   const isIndo = country.toLowerCase().includes("indonesia");
+
+  // DETECT LEAD MAGNET / HVCO
+  const isHVCO = format === CreativeFormat.LEAD_MAGNET_3D || concept.visualScene.includes("Book") || concept.visualScene.includes("Report");
+
+  let specialInstruction = "";
+  if (isHVCO) {
+      specialInstruction = `
+        MODE: SELLING THE CLICK (Lead Magnet).
+        DO NOT sell the product. Sell the FREE INFO.
+        
+        CRITICAL: Use "FASCINATIONS" Bullet Points.
+        (e.g., "• The 1 food you must avoid...")
+        (e.g., "• Why your doctor is wrong about X...")
+        (e.g., "• Page 7: The 3-minute trick that changes everything.")
+        
+        Create 3-5 Curiosity-Dripping Bullets based on the Hook: "${concept.hookComponent || 'Download Now'}".
+      `;
+  }
 
   // SYSTEM: TONE CALIBRATION (FEW-SHOT PROMPTING)
   let toneInstruction = "";
@@ -171,9 +190,16 @@ export const generateAdCopy = async (
   const prompt = `
     # Role: Senior Direct Response Copywriter (Static Ad Specialist)
 
+    **AAZAR SHAD'S "SKIM-ABILITY" RULE:**
+    People DO NOT read ads. They skim them.
+    1. NO Wall of Text. Paragraphs must be 1-2 lines max.
+    2. Use Bullet Points (•) or Emojis (✅) to break up benefits.
+    3. The first sentence must be a "Velcro Hook" (Short, punchy).
+
     **MANDATORY INSTRUCTION:**
     ${toneInstruction}
     TARGET COUNTRY: ${country}.
+    ${specialInstruction}
 
     **THE HEADLINE CONTEXT LIBRARY (RULES):**
     1.  **Assume No One Knows You:** Treat the audience as COLD. Do not be vague.
@@ -195,10 +221,10 @@ export const generateAdCopy = async (
     **TASK:**
     Write the ad copy applying the rules above.
 
-    **OUTPUT:**
-    1. Primary Text: The main caption. Match the tone to the identity of the persona.
-    2. Headline: Apply the "So That" test. Max 7 words. MUST be congruent with the Visual Scene.
-    3. CTA: Clear instruction.
+    **OUTPUT FORMATTING:**
+    - primaryText: Must be visually spaced out. Use line breaks.
+    - headline: Under 7 words. High contrast. MUST be congruent with the Visual Scene.
+    - cta: Clear instruction.
   `;
 
   const response = await ai.models.generateContent({
