@@ -216,13 +216,15 @@ export const generateSalesLetter = async (
     hook: string
 ): Promise<GenResult<string>> => {
   const model = "gemini-2.5-flash"; 
-  const isIndo = project.targetCountry?.toLowerCase().includes("indonesia");
+  const country = project.targetCountry || "USA";
   
   const prompt = `
     ROLE: World-Class Social Media Copywriter (Instagram/TikTok/Facebook).
     TASK: Write a Long-Form Social Media Caption (Micro-Blog Style).
     
-    LANGUAGE: ${isIndo ? "Bahasa Indonesia (Conversational, Engaging, No Formal Language)" : "English (Conversational, Engaging)"}
+    TARGET COUNTRY: ${country}.
+    IMPORTANT: Adapt specifically to the local language, slang, and cultural nuances of ${country}. 
+    If ${country} is Indonesia, use "Bahasa Gaul" mixed with persuasive copy.
     
     STRUCTURE (The 8-Section System adapted for Social):
     1. HOOK: Start with the Hook: "${hook}".
@@ -568,12 +570,17 @@ export const generateAdCopy = async (
   concept: CreativeConcept
 ): Promise<GenResult<AdCopy>> => {
   const model = "gemini-2.5-flash";
+  const country = project.targetCountry || "USA";
 
   // SYSTEM: Ship Fast (Step 5)
-  const isIndo = project.targetCountry?.toLowerCase().includes("indonesia");
-  const languageInstruction = isIndo
-    ? "Write in Bahasa Indonesia. Use 'Bahasa Marketing' (mix of persuasive & conversational). Use local power words (e.g., 'Slot Terbatas', 'Best Seller', 'Gak Nyesel')."
-    : "Write in English (or native language). Use persuasive Direct Response copy.";
+  const languageInstruction = `
+    TARGET COUNTRY: ${country}.
+    Write in the native language of ${country}.
+    Adapt to local slang and buying behavior. 
+    If Indonesia -> Use "Bahasa Marketing" (Persuasive & Colloquial).
+    If Brazil -> Use Portuguese with emotional flair.
+    If USA -> Direct Response English.
+  `;
 
   // SYSTEM: HEADLINE CONTEXT LIBRARY (THE STATIC AD RULES)
   const prompt = `
@@ -649,6 +656,15 @@ export const checkAdCompliance = async (adCopy: AdCopy): Promise<string> => {
 
 // --- IMAGE GENERATION (NANO BANANA) ---
 
+const SAFETY_GUIDELINES = `
+  CRITICAL AD POLICY COMPLIANCE:
+  1. NO Nudity or Sexual content.
+  2. NO Medical Gore or overly graphic body fluids.
+  3. NO "Before/After" split screens that show unrealistic body transformations (e.g. extreme weight loss).
+  4. NO Glitchy text.
+  5. If humans are shown, they must look realistic with normal anatomy (no 6 fingers).
+`;
+
 export const generateCreativeImage = async (
   project: ProjectContext,
   personaName: string,
@@ -657,27 +673,24 @@ export const generateCreativeImage = async (
   visualScene: string,
   visualStyle: string,
   technicalPrompt: string,
-  aspectRatio: string = "1:1"
+  aspectRatio: string = "1:1",
+  referenceImageBase64?: string // NEW: Optional reference for consistency
 ): Promise<GenResult<string | null>> => {
   
   const model = "gemini-2.5-flash-image";
-
-  // 1. CULTURAL & SERVICE CONTEXT INJECTION
-  const isIndo = project.targetCountry?.toLowerCase().includes("indonesia");
+  const country = project.targetCountry || "USA";
   const lowerDesc = project.productDescription.toLowerCase();
   
   // Is this a Service Business? (Used for fallback logic only)
   const isService = lowerDesc.includes("studio") || lowerDesc.includes("service") || lowerDesc.includes("jasa") || lowerDesc.includes("photography") || lowerDesc.includes("clinic");
   
-  let culturePrompt = "";
-  if (isIndo) {
-     culturePrompt = " Indonesian aesthetic, Asian features, localized environment.";
-     
-     // Specific Case: Graduation/Wisuda
-     if (lowerDesc.includes("graduation") || lowerDesc.includes("wisuda")) {
-         culturePrompt += " Young Indonesian university student wearing a black graduation toga with university sash/selempang (Indonesian style), holding a tube or bouquet. Authentic Indonesian look (hijab optional but common).";
-     }
-  }
+  // DYNAMIC CULTURAL INJECTION
+  const culturePrompt = `
+    Target Country: ${country}.
+    Aesthetics: Adapt visual style, models, and environment to ${country}. 
+    If SE Asia -> Use Asian models, scooters, tropical greenery, warmer lighting.
+    If USA/EU -> Western models, suburban or urban western environments.
+  `;
 
   // 2. PHOTOGRAPHY ENHANCERS - SPLIT BETWEEN PRO AND UGC
   const professionalEnhancers = "Photorealistic, 8k resolution, highly detailed, shot on 35mm lens, depth of field, natural lighting, sharp focus.";
@@ -727,9 +740,9 @@ export const generateCreativeImage = async (
 
       // 3. Construct the "Native" Prompt
       if (environment) {
-          finalPrompt = `A vertical, authentic UGC photo of a person (Indonesian look if applicable) ${environment}. ${uiOverlay} ${appliedEnhancer} ${culturePrompt}. Make it look like a real Instagram Story, NOT a professional ad.`;
+          finalPrompt = `A vertical, authentic UGC photo of a person ${environment}. ${uiOverlay} ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}. Make it look like a real Instagram Story, NOT a professional ad.`;
       } else {
-          finalPrompt = `${uiOverlay} ${appliedEnhancer}. Photorealistic UI render.`;
+          finalPrompt = `${uiOverlay} ${appliedEnhancer} ${SAFETY_GUIDELINES}. Photorealistic UI render.`;
       }
   }
 
@@ -739,10 +752,10 @@ export const generateCreativeImage = async (
   }
   else if (format === CreativeFormat.BENEFIT_POINTERS) {
     // Force product/subject visualization with lines
-    finalPrompt = `A high-quality product photography shot of ${project.productName} (or the main subject of the service). Clean background. There are sleek, modern graphic lines pointing to 3 key features of the subject. The style is "Anatomy Breakdown". ${appliedEnhancer} ${culturePrompt}. (Note: The pointers are the main visual hook).`;
+    finalPrompt = `A high-quality product photography shot of ${project.productName} (or the main subject of the service). Clean background. There are sleek, modern graphic lines pointing to 3 key features of the subject. The style is "Anatomy Breakdown". ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}. (Note: The pointers are the main visual hook).`;
   }
   else if (format === CreativeFormat.US_VS_THEM) {
-    finalPrompt = `A split screen comparison image. Left side (Them): Cloudy, sad, messy, labeled "Them". Right side (Us): Bright, happy, organized, labeled "Us". The subject is related to: ${project.productName}. ${appliedEnhancer} ${culturePrompt}.`;
+    finalPrompt = `A split screen comparison image. Left side (Them): Cloudy, sad, messy, labeled "Them". Right side (Us): Bright, happy, organized, labeled "Us". The subject is related to: ${project.productName}. ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}.`;
   }
   // === CAROUSEL FORMATS (Relies on specific technicalPrompt passed from generateCarouselSlides) ===
   else if (
@@ -755,26 +768,35 @@ export const generateCreativeImage = async (
       if (format === CreativeFormat.CAROUSEL_REAL_STORY) {
           appliedEnhancer = ugcEnhancers;
       }
-      finalPrompt = `${technicalPrompt}. ${appliedEnhancer} ${culturePrompt}`;
+      finalPrompt = `${technicalPrompt}. ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
   }
   // === FALLBACK: SERVICE BUSINESS LOGIC ===
   // Only apply "Service Logic" if it's NOT one of the specific formats above
   else if (isService) {
       // For services, we focus on the RESULT or the EXPERIENCE, not a "Product Box"
-      finalPrompt = `${contextInjection} ${technicalPrompt}. ${culturePrompt} ${appliedEnhancer}. (Note: This is a service, do not show a retail box. Show the person experiencing the result).`;
+      finalPrompt = `${contextInjection} ${technicalPrompt}. ${culturePrompt} ${appliedEnhancer} ${SAFETY_GUIDELINES}. (Note: This is a service, do not show a retail box. Show the person experiencing the result).`;
   }
   // === FALLBACK: STANDARD GENERIC ===
   else {
      if (technicalPrompt && technicalPrompt.length > 20) {
-         finalPrompt = `${contextInjection} ${technicalPrompt}. ${appliedEnhancer} ${culturePrompt}`;
+         finalPrompt = `${contextInjection} ${technicalPrompt}. ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
      } else {
-         finalPrompt = `${contextInjection} ${visualScene}. Style: ${visualStyle || getRandomStyle()}. ${appliedEnhancer} ${culturePrompt}`;
+         finalPrompt = `${contextInjection} ${visualScene}. Style: ${visualStyle || getRandomStyle()}. ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
      }
   }
 
   const parts: any[] = [{ text: finalPrompt }];
   
-  if (project.productReferenceImage) {
+  // PRIORITY 1: Reference Image (from Carousel Chaining)
+  if (referenceImageBase64) {
+      const base64Data = referenceImageBase64.split(',')[1] || referenceImageBase64;
+      parts.unshift({
+          inlineData: { mimeType: "image/png", data: base64Data }
+      });
+      parts.push({ text: "Use this image as a strict character/style reference. Maintain the same person/environment but change the pose/action as described." });
+  } 
+  // PRIORITY 2: Product Reference (Global)
+  else if (project.productReferenceImage) {
       const base64Data = project.productReferenceImage.split(',')[1] || project.productReferenceImage;
       parts.unshift({
           inlineData: { mimeType: "image/png", data: base64Data }
@@ -820,34 +842,40 @@ export const generateCarouselSlides = async (
     const slides: string[] = [];
     let totalInput = 0;
     let totalOutput = 0;
-
-    // DYNAMIC STORYBOARDING FOR CAROUSELS
-    // We break the single technicalPrompt into a 3-act structure
     
+    // CONSISTENCY ENGINE: Reference Chaining
+    // Slide 1 generates the "Anchor Visual". Slide 2 & 3 use Slide 1 as a reference.
+    let anchorImage: string | undefined = undefined;
+
     for (let i = 1; i <= 3; i++) {
         let slidePrompt = "";
         
         if (format === CreativeFormat.CAROUSEL_REAL_STORY) {
              if (i === 1) slidePrompt = `Slide 1 (The Hook): A candid, slightly imperfect UGC-style photo showing the PROBLEM or PAIN POINT. The subject looks frustrated or tired. Context: ${angle}. Style: Handheld camera.`;
-             if (i === 2) slidePrompt = `Slide 2 (The Turn): The subject discovers ${project.productName}. A close up shot of the product/service in use. Natural lighting.`;
-             if (i === 3) slidePrompt = `Slide 3 (The Result): The subject looks relieved and happy. A glowing transformation result. Text overlay implied: "Saved my life".`;
+             if (i === 2) slidePrompt = `Slide 2 (The Turn): The SAME subject discovers ${project.productName}. A close up shot of the product/service in use. Natural lighting.`;
+             if (i === 3) slidePrompt = `Slide 3 (The Result): The SAME subject looks relieved and happy. A glowing transformation result. Text overlay implied: "Saved my life".`;
         } 
         else if (format === CreativeFormat.CAROUSEL_EDUCATIONAL) {
              if (i === 1) slidePrompt = `Slide 1 (Title Card): Minimalist background with plenty of negative space for text. Visual icon representing the topic: ${angle}.`;
-             if (i === 2) slidePrompt = `Slide 2 (The Method): A diagram or clear photo demonstrating the 'How To' aspect of the solution.`;
+             if (i === 2) slidePrompt = `Slide 2 (The Method): A diagram or clear photo demonstrating the 'How To' aspect of the solution. Keep style consistent.`;
              if (i === 3) slidePrompt = `Slide 3 (Summary): A checklist visual or a final result shot showing success.`;
         }
         else {
             // Default Carousel Structure
             if (i === 1) slidePrompt = `${technicalPrompt}. Slide 1: The Hook/Problem. High tension visual.`;
-            if (i === 2) slidePrompt = `${technicalPrompt}. Slide 2: The Solution/Process. Detailed macro shot.`;
+            if (i === 2) slidePrompt = `${technicalPrompt}. Slide 2: The Solution/Process. Detailed macro shot. Keep visual identity.`;
             if (i === 3) slidePrompt = `${technicalPrompt}. Slide 3: The Result/CTA. Happy resolution.`;
         }
 
         const result = await generateCreativeImage(
-            project, "User", angle, format, visualScene, visualStyle, slidePrompt, "1:1"
+            project, "User", angle, format, visualScene, visualStyle, slidePrompt, "1:1",
+            anchorImage // Pass the anchor image if it exists (for slide 2 and 3)
         );
-        if (result.data) slides.push(result.data);
+        
+        if (result.data) {
+            slides.push(result.data);
+            if (i === 1) anchorImage = result.data; // Set the first slide as the anchor
+        }
         totalInput += result.inputTokens;
         totalOutput += result.outputTokens;
     }

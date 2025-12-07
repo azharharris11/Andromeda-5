@@ -346,30 +346,54 @@ const Node: React.FC<NodeProps> = ({ data, selected, onClick, onAction, isGridVi
             {/* --- MEGAPROMPT BRANCHING ACTIONS --- */}
             
             {data.type === NodeType.STORY_NODE && (
-                <button 
-                onClick={(e) => { e.stopPropagation(); onAction('generate_big_ideas', data.id); }}
-                className="w-full py-2 bg-white hover:bg-yellow-50 hover:border-yellow-200 text-yellow-600 text-xs font-bold rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                <Lightbulb className="w-3 h-3" /> Generate Big Ideas
-                </button>
+                <div className="flex flex-col gap-1">
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('generate_big_ideas', data.id); }}
+                    className="w-full py-2 bg-white hover:bg-yellow-50 hover:border-yellow-200 text-yellow-600 text-xs font-bold rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                    <Lightbulb className="w-3 h-3" /> Generate Big Ideas
+                    </button>
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('open_format_selector', data.id); }}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                    <ImageIcon className="w-3 h-3" /> Create Now (Shortcut)
+                    </button>
+                </div>
             )}
             
             {data.type === NodeType.BIG_IDEA_NODE && (
-                <button 
-                onClick={(e) => { e.stopPropagation(); onAction('generate_mechanisms', data.id); }}
-                className="w-full py-2 bg-white hover:bg-cyan-50 hover:border-cyan-200 text-cyan-600 text-xs font-bold rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                <Cpu className="w-3 h-3" /> Define Mechanisms
-                </button>
+                <div className="flex flex-col gap-1">
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('generate_mechanisms', data.id); }}
+                    className="w-full py-2 bg-white hover:bg-cyan-50 hover:border-cyan-200 text-cyan-600 text-xs font-bold rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                    <Cpu className="w-3 h-3" /> Define Mechanisms
+                    </button>
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('open_format_selector', data.id); }}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                    <ImageIcon className="w-3 h-3" /> Create Now (Shortcut)
+                    </button>
+                </div>
             )}
 
             {data.type === NodeType.MECHANISM_NODE && (
-                <button 
-                onClick={(e) => { e.stopPropagation(); onAction('generate_hooks', data.id); }}
-                className="w-full py-2 bg-white hover:bg-pink-50 hover:border-pink-200 text-pink-600 text-xs font-bold rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                <Sparkles className="w-3 h-3" /> Generate Hooks
-                </button>
+                <div className="flex flex-col gap-1">
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('generate_hooks', data.id); }}
+                    className="w-full py-2 bg-white hover:bg-pink-50 hover:border-pink-200 text-pink-600 text-xs font-bold rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                    <Sparkles className="w-3 h-3" /> Generate Hooks
+                    </button>
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('open_format_selector', data.id); }}
+                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                    >
+                    <ImageIcon className="w-3 h-3" /> Create Now (Shortcut)
+                    </button>
+                </div>
             )}
             
             {data.type === NodeType.HOOK_NODE && (

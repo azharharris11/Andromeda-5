@@ -1,14 +1,14 @@
 
-
 import React, { useState, useRef } from 'react';
 import { HashRouter } from 'react-router-dom';
-import { Layers, Settings, Activity, Microscope, ShieldCheck, X, RefreshCw, Globe, Sparkles, Image as ImageIcon, Upload, Package, Megaphone, Filter, Target, FileText, MapPin, Info, Smartphone, ChevronDown } from 'lucide-react';
 import Canvas, { CanvasHandle } from './components/Canvas';
-import Node from './components/Node';
 import Inspector from './components/Inspector';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import ConfigModal from './components/ConfigModal';
+import FormatSelector from './components/FormatSelector';
 import { NodeType, NodeData, Edge, ProjectContext, CreativeFormat, CampaignStage, ViewMode, FunnelStage, MarketAwareness, CopyFramework, AnalysisPhase } from './types';
 import { generatePersonas, generateAngles, generateCreativeImage, generateAdCopy, generateCarouselSlides, generateCreativeConcept, checkAdCompliance, analyzeLandingPageContext, analyzeImageContext, generateStoryResearch, generateBigIdeas, generateMechanisms, generateHooks, generateSalesLetter } from './services/geminiService';
-import { scrapeLandingPage } from './services/firecrawlService';
 
 const INITIAL_PROJECT: ProjectContext = {
   productName: "Zenith Focus Gummies",
@@ -22,6 +22,28 @@ const INITIAL_PROJECT: ProjectContext = {
   copyFramework: CopyFramework.PAS,
   offer: "Buy 2 Get 1 Free",
   offerOptions: ["Buy 2 Get 1 Free", "50% Off First Order", "Free Shipping Worldwide", "Bundle & Save 30%", "$10 Welcome Coupon"]
+};
+
+// --- SIMULATION BENCHMARKS ---
+const FORMAT_BENCHMARKS: Record<string, { ctr: number, cvr: number }> = {
+    // High Engagement, Low Sales (Top of Funnel)
+    [CreativeFormat.MEME]: { ctr: 2.5, cvr: 0.5 },
+    [CreativeFormat.TWITTER_REPOST]: { ctr: 2.0, cvr: 0.8 },
+    [CreativeFormat.REDDIT_THREAD]: { ctr: 2.2, cvr: 0.7 },
+    
+    // Balanced (Middle of Funnel)
+    [CreativeFormat.UGC_MIRROR]: { ctr: 1.5, cvr: 1.2 },
+    [CreativeFormat.STORY_QNA]: { ctr: 1.4, cvr: 1.0 },
+    [CreativeFormat.CAROUSEL_REAL_STORY]: { ctr: 1.8, cvr: 1.3 },
+    
+    // High Sales, Low Engagement (Bottom of Funnel / Logic)
+    [CreativeFormat.US_VS_THEM]: { ctr: 0.9, cvr: 2.5 },
+    [CreativeFormat.BENEFIT_POINTERS]: { ctr: 1.0, cvr: 2.2 },
+    [CreativeFormat.STICKY_NOTE_REALISM]: { ctr: 1.3, cvr: 1.8 },
+    [CreativeFormat.GRAPH_CHART]: { ctr: 0.7, cvr: 2.0 },
+    
+    // Default
+    "DEFAULT": { ctr: 1.0, cvr: 1.0 }
 };
 
 const FORMAT_GROUPS: Record<string, CreativeFormat[]> = {
@@ -80,49 +102,6 @@ const FORMAT_GROUPS: Record<string, CreativeFormat[]> = {
   ]
 };
 
-// UI Component for Editable Dropdowns (Brand Voice & Offer)
-const EditableSelect = ({ label, value, onChange, options, placeholder }: { label: string, value: string, onChange: (val: string) => void, options: string[], placeholder: string }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div className="relative group">
-      <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">{label}</label>
-      <div className="relative">
-        <input 
-          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all pr-8"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          onFocus={() => setIsOpen(true)}
-          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-        />
-        <button 
-          onClick={() => setIsOpen(!isOpen)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-blue-600 transition-colors"
-        >
-          <ChevronDown className="w-4 h-4" />
-        </button>
-      </div>
-      {isOpen && options && options.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 max-h-[200px] overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
-          {options.map((opt, i) => (
-            <button
-              key={i}
-              className="w-full text-left px-4 py-3 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 border-b border-slate-50 last:border-0 transition-colors"
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent blur clearing before click registers
-                onChange(opt);
-                setIsOpen(false);
-              }}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const App = () => {
   const [project, setProject] = useState<ProjectContext>(INITIAL_PROJECT);
   const [activeView, setActiveView] = useState<ViewMode>('LAB');
@@ -146,14 +125,7 @@ const App = () => {
   const [targetNodeIdForFormat, setTargetNodeIdForFormat] = useState<string | null>(null);
   const [selectedFormats, setSelectedFormats] = useState<Set<CreativeFormat>>(new Set());
   
-  // New States for Firecrawl & Image Analysis
-  const [landingPageUrl, setLandingPageUrl] = useState('');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
-  
   const canvasRef = useRef<CanvasHandle>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const productRefInputRef = useRef<HTMLInputElement>(null);
 
   const labNodes = nodes.filter(n => n.stage === CampaignStage.TESTING || n.isGhost);
   const labEdges = edges.filter(e => {
@@ -169,133 +141,23 @@ const App = () => {
   const addEdge = (source: string, target: string) => { setEdges(prev => [...prev, { id: `${source}-${target}`, source, target }]); };
   const updateNode = (id: string, updates: Partial<NodeData>) => { setNodes(prev => prev.map(n => n.id === id ? { ...n, ...updates } : n)); };
   
-  // Handle dragging nodes
   const handleNodeMove = (id: string, x: number, y: number) => {
       setNodes(prev => prev.map(n => n.id === id ? { ...n, x, y } : n));
   };
 
-  // --- LOGIC: MARKET AWARENESS -> FUNNEL STAGE ---
-  const handleAwarenessChange = (awareness: MarketAwareness) => {
-    let derivedFunnelStage = FunnelStage.TOF;
-
-    switch (awareness) {
-      case MarketAwareness.UNAWARE:
-      case MarketAwareness.PROBLEM_AWARE:
-        derivedFunnelStage = FunnelStage.TOF;
-        break;
-      case MarketAwareness.SOLUTION_AWARE:
-        derivedFunnelStage = FunnelStage.MOF;
-        break;
-      case MarketAwareness.PRODUCT_AWARE:
-      case MarketAwareness.MOST_AWARE:
-        derivedFunnelStage = FunnelStage.BOF;
-        break;
-    }
-
-    setProject(prev => ({
-      ...prev,
-      marketAwareness: awareness,
-      funnelStage: derivedFunnelStage
-    }));
+  // --- CONFIG HANDLERS ---
+  const handleProjectUpdate = (updates: Partial<ProjectContext>) => {
+      setProject(prev => ({...prev, ...updates}));
   };
 
-  // --- FIRECRAWL ANALYSIS ---
-  const handleAnalyzeUrl = async () => {
-      if (!landingPageUrl) return;
-      
-      setIsAnalyzing(true);
-      try {
-          // 1. Scrape with Firecrawl
-          const scrapeResult = await scrapeLandingPage(landingPageUrl);
-          
-          if (!scrapeResult.success || !scrapeResult.markdown) {
-              alert("Failed to read the website. Please enter details manually.");
-              setIsAnalyzing(false);
-              return;
-          }
-
-          // 2. Analyze with Gemini
-          const context = await analyzeLandingPageContext(scrapeResult.markdown);
-          
-          setProject({
-              ...project,
-              productName: context.productName,
-              productDescription: context.productDescription,
-              targetAudience: context.targetAudience,
-              targetCountry: context.targetCountry || project.targetCountry,
-              brandVoice: context.brandVoice,
-              brandVoiceOptions: context.brandVoiceOptions,
-              offer: context.offer,
-              offerOptions: context.offerOptions,
-              landingPageUrl: landingPageUrl
-          });
-
-          // Update Root Node
-          setNodes(prev => prev.map(n => n.type === NodeType.ROOT ? {
-              ...n,
-              title: context.productName,
-              description: context.productDescription
-          } : n));
-
-      } catch (e) {
-          console.error(e);
-          alert("Analysis failed. Please check the URL and try again.");
-      }
-      setIsAnalyzing(false);
-  };
-
-  // --- IMAGE ANALYSIS ---
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      setIsAnalyzingImage(true);
-      
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-          const base64 = reader.result as string;
-          try {
-              const context = await analyzeImageContext(base64);
-              
-              setProject({
-                  ...project, // Keep url if exists
-                  productName: context.productName,
-                  productDescription: context.productDescription,
-                  targetAudience: context.targetAudience,
-                  targetCountry: context.targetCountry || project.targetCountry,
-                  brandVoice: context.brandVoice,
-                  brandVoiceOptions: context.brandVoiceOptions,
-                  offer: context.offer,
-                  offerOptions: context.offerOptions,
-              });
-
-               // Update Root Node
-              setNodes(prev => prev.map(n => n.type === NodeType.ROOT ? {
-                  ...n,
-                  title: context.productName,
-                  description: context.productDescription
-              } : n));
-
-          } catch (error) {
-              console.error(error);
-              alert("Could not analyze image. Try a clearer product shot.");
-          }
-          setIsAnalyzingImage(false);
-      };
-      reader.readAsDataURL(file);
-  };
-
-  // --- PRODUCT REFERENCE IMAGE ---
-  const handleProductRefUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-          const base64 = reader.result as string;
-          setProject(prev => ({ ...prev, productReferenceImage: base64 }));
-      };
-      reader.readAsDataURL(file);
+  const handleContextAnalyzed = (context: ProjectContext) => {
+      setProject(prev => ({...prev, ...context}));
+      // Update Root Node to reflect new product details
+      setNodes(prev => prev.map(n => n.type === NodeType.ROOT ? {
+          ...n,
+          title: context.productName,
+          description: context.productDescription
+      } : n));
   };
 
   // New: Handle Regeneration from Inspector
@@ -308,7 +170,6 @@ const App = () => {
     try {
         const personaName = node.meta?.personaName || "User";
         const angle = node.meta?.angle || node.title;
-        // Fallback for legacy nodes that only had styleContext (visualScene)
         const visualScene = node.meta?.visualScene || node.meta?.styleContext || ""; 
         const visualStyle = node.meta?.visualStyle || "";
         const technicalPrompt = node.meta?.technicalPrompt || "";
@@ -353,6 +214,15 @@ const App = () => {
 
     const newNodes: NodeData[] = [];
     
+    // Determine context based on parent node type (Shortcuts logic)
+    let angleToUse = parentNode.title;
+    if (parentNode.type === NodeType.HOOK_NODE && parentNode.hookData) angleToUse = parentNode.hookData;
+    else if (parentNode.type === NodeType.BIG_IDEA_NODE && parentNode.bigIdeaData) angleToUse = parentNode.bigIdeaData.headline;
+    else if (parentNode.type === NodeType.MECHANISM_NODE && parentNode.mechanismData) angleToUse = parentNode.mechanismData.scientificPseudo;
+    
+    // Determine Persona Name
+    const personaToUse = parentNode.meta?.personaName || "Story Protagonist";
+    
     formats.forEach((format, index) => {
       const row = Math.floor(index / COLUMNS);
       const col = index % COLUMNS;
@@ -370,8 +240,8 @@ const App = () => {
         y: startY + (row * ROW_SPACING),
         stage: CampaignStage.TESTING,
         meta: { 
-            personaName: parentNode.meta?.personaName || "Story Protagonist", // Default for Hook Node
-            angle: parentNode.type === NodeType.HOOK_NODE ? parentNode.hookData : parentNode.title, 
+            personaName: personaToUse, 
+            angle: angleToUse, 
         }
       };
       newNodes.push(nodeData);
@@ -387,10 +257,9 @@ const App = () => {
         try {
             // DETECT IF PARENT IS HOOK OR ANGLE
             const isHookSource = parentNode.type === NodeType.HOOK_NODE;
-            
-            // Common Params
-            const personaName = isHookSource ? (parentNode.storyData?.title || "Story Protagonist") : (parentNode.meta?.personaName || "User");
-            const angle = isHookSource ? (parentNode.hookData || "Hook") : parentNode.title;
+            // Also enable shortcut from Big Idea or Mechanism or Story
+            const isShortcut = parentNode.type === NodeType.BIG_IDEA_NODE || parentNode.type === NodeType.MECHANISM_NODE || parentNode.type === NodeType.STORY_NODE;
+
             const fmt = node.format as CreativeFormat;
             
             let accumulatedInput = 0;
@@ -400,44 +269,60 @@ const App = () => {
             let visualConcept: any = {};
 
             // --- BRANCH A: STANDARD FLOW (FROM ANGLE) ---
-            if (!isHookSource) {
+            if (!isHookSource && !isShortcut) {
                  // 1. STRATEGIST AGENT
                  updateNode(node.id, { description: "Art Director: Defining visual style..." });
-                 const conceptResult = await generateCreativeConcept(project, personaName, angle, fmt);
+                 const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
                  accumulatedInput += conceptResult.inputTokens;
                  accumulatedOutput += conceptResult.outputTokens;
                  visualConcept = conceptResult.data;
 
                  // 2. COPYWRITER AGENT
                  updateNode(node.id, { description: "Copywriter: Drafting..." });
-                 const copyResult = await generateAdCopy(project, parentNode.meta || { name: personaName }, visualConcept);
+                 const copyResult = await generateAdCopy(project, parentNode.meta || { name: personaToUse }, visualConcept);
                  accumulatedInput += copyResult.inputTokens;
                  accumulatedOutput += copyResult.outputTokens;
                  finalAdCopy = copyResult.data;
             } 
             
-            // --- BRANCH B: MEGAPROMPT FLOW (FROM HOOK) ---
+            // --- BRANCH B: MEGAPROMPT / SHORTCUT FLOW ---
             else {
                  // 1. GENERATE SALES LETTER (To be used as Caption)
-                 updateNode(node.id, { description: "Writing Caption..." });
-                 if (parentNode.storyData && parentNode.bigIdeaData && parentNode.mechanismData && parentNode.hookData) {
+                 // If we have full context (Hook Node), use full generator.
+                 if (isHookSource && parentNode.storyData && parentNode.bigIdeaData && parentNode.mechanismData && parentNode.hookData) {
+                    updateNode(node.id, { description: "Writing Caption..." });
                     const letterResult = await generateSalesLetter(project, parentNode.storyData, parentNode.bigIdeaData, parentNode.mechanismData, parentNode.hookData);
                     accumulatedInput += letterResult.inputTokens;
                     accumulatedOutput += letterResult.outputTokens;
                     
                     finalAdCopy = {
                         headline: parentNode.hookData,
-                        primaryText: letterResult.data, // THE SALES LETTER IS THE CAPTION
+                        primaryText: letterResult.data, 
                         cta: project.offer || "Learn More"
                     };
+                 } else {
+                     // Shortcut path: Use standard copy generator with inferred context
+                     updateNode(node.id, { description: "Copywriter: Drafting (Shortcut)..." });
+                     // Need a dummy concept first to feed copywriter
+                     const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
+                     accumulatedInput += conceptResult.inputTokens;
+                     accumulatedOutput += conceptResult.outputTokens;
+                     visualConcept = conceptResult.data;
+                     
+                     const copyResult = await generateAdCopy(project, { name: personaToUse }, visualConcept);
+                     accumulatedInput += copyResult.inputTokens;
+                     accumulatedOutput += copyResult.outputTokens;
+                     finalAdCopy = copyResult.data;
                  }
 
-                 // 2. GENERATE VISUAL CONCEPT (Based on Hook & Mechanism)
-                 updateNode(node.id, { description: "Art Director: Visualizing Hook..." });
-                 const conceptResult = await generateCreativeConcept(project, personaName, angle, fmt);
-                 accumulatedInput += conceptResult.inputTokens;
-                 accumulatedOutput += conceptResult.outputTokens;
-                 visualConcept = conceptResult.data;
+                 // 2. GENERATE VISUAL CONCEPT (If not already generated in shortcut)
+                 if (!visualConcept.visualScene) {
+                     updateNode(node.id, { description: "Art Director: Visualizing..." });
+                     const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
+                     accumulatedInput += conceptResult.inputTokens;
+                     accumulatedOutput += conceptResult.outputTokens;
+                     visualConcept = conceptResult.data;
+                 }
             }
 
             // 3. COMPLIANCE CHECK
@@ -447,7 +332,7 @@ const App = () => {
             // 4. VISUALIZER AGENT (Common for both)
             updateNode(node.id, { description: "Visualizer: Rendering..." });
             const imgResult = await generateCreativeImage(
-                project, personaName, angle, fmt, 
+                project, personaToUse, angleToUse, fmt, 
                 visualConcept.visualScene, visualConcept.visualStyle, visualConcept.technicalPrompt, "1:1"
             );
             
@@ -468,7 +353,7 @@ const App = () => {
             
             if (isCarousel) {
                 const slidesResult = await generateCarouselSlides(
-                    project, fmt, angle, visualConcept.visualScene, visualConcept.visualStyle, visualConcept.technicalPrompt
+                    project, fmt, angleToUse, visualConcept.visualScene, visualConcept.visualStyle, visualConcept.technicalPrompt
                 );
                 accumulatedInput += slidesResult.inputTokens;
                 accumulatedOutput += slidesResult.outputTokens;
@@ -590,19 +475,16 @@ const App = () => {
     }
 
     // --- MEGAPROMPT WORKFLOW (MINDMAP BRANCHING LOGIC) ---
-    
     // 1. ROOT -> 3 STORY NODES
     if (action === 'start_story_flow') {
         updateNode(nodeId, { isLoading: true });
         try {
             const result = await generateStoryResearch(project);
             const stories = result.data;
-            
             const HORIZONTAL_GAP = 500;
             const VERTICAL_SPACING = 400;
             const totalHeight = (stories.length - 1) * VERTICAL_SPACING;
             const startY = parentNode.y - (totalHeight / 2);
-
             stories.forEach((story, index) => {
                 const newNodeId = `story-${Date.now()}-${index}`;
                 addNode({
@@ -613,7 +495,7 @@ const App = () => {
                     description: "Story Phase",
                     x: parentNode.x + HORIZONTAL_GAP,
                     y: startY + (index * VERTICAL_SPACING),
-                    storyData: story, // HOLD THE SINGLE ITEM
+                    storyData: story, 
                     stage: CampaignStage.TESTING,
                     inputTokens: result.inputTokens / 3,
                     outputTokens: result.outputTokens / 3,
@@ -629,30 +511,26 @@ const App = () => {
     if (action === 'generate_big_ideas') {
         const story = parentNode.storyData;
         if (!story) return;
-        
         updateNode(nodeId, { isLoading: true });
-        
         try {
             const result = await generateBigIdeas(project, story);
             const ideas = result.data;
-            
             const HORIZONTAL_GAP = 500;
             const VERTICAL_SPACING = 300;
             const totalHeight = (ideas.length - 1) * VERTICAL_SPACING;
             const startY = parentNode.y - (totalHeight / 2);
-
             ideas.forEach((idea, index) => {
                  const newNodeId = `big-idea-${Date.now()}-${index}`;
                  addNode({
                     id: newNodeId,
-                    type: NodeType.BIG_IDEA_NODE, // BRANCH: Big Idea
+                    type: NodeType.BIG_IDEA_NODE, 
                     parentId: nodeId,
                     title: idea.headline,
                     description: "Big Idea Phase",
                     x: parentNode.x + HORIZONTAL_GAP,
                     y: startY + (index * VERTICAL_SPACING),
-                    storyData: story, // Pass context
-                    bigIdeaData: idea, // HOLD SINGLE ITEM
+                    storyData: story, 
+                    bigIdeaData: idea, 
                     stage: CampaignStage.TESTING,
                     inputTokens: result.inputTokens / 3,
                     outputTokens: result.outputTokens / 3,
@@ -668,23 +546,19 @@ const App = () => {
     if (action === 'generate_mechanisms') {
         const bigIdea = parentNode.bigIdeaData;
         if (!bigIdea) return;
-        
         updateNode(nodeId, { isLoading: true });
-        
         try {
             const result = await generateMechanisms(project, bigIdea);
             const mechanisms = result.data;
-            
             const HORIZONTAL_GAP = 500;
             const VERTICAL_SPACING = 300;
             const totalHeight = (mechanisms.length - 1) * VERTICAL_SPACING;
             const startY = parentNode.y - (totalHeight / 2);
-
             mechanisms.forEach((mech, index) => {
                  const newNodeId = `mechanism-${Date.now()}-${index}`;
                  addNode({
                     id: newNodeId,
-                    type: NodeType.MECHANISM_NODE, // BRANCH: Mechanism
+                    type: NodeType.MECHANISM_NODE, 
                     parentId: nodeId,
                     title: mech.scientificPseudo,
                     description: "Mechanism Phase",
@@ -692,7 +566,7 @@ const App = () => {
                     y: startY + (index * VERTICAL_SPACING),
                     storyData: parentNode.storyData,
                     bigIdeaData: bigIdea,
-                    mechanismData: mech, // HOLD SINGLE ITEM
+                    mechanismData: mech, 
                     stage: CampaignStage.TESTING,
                     inputTokens: result.inputTokens / 3,
                     outputTokens: result.outputTokens / 3,
@@ -708,26 +582,21 @@ const App = () => {
     if (action === 'generate_hooks') {
         const mechanism = parentNode.mechanismData;
         if (!mechanism) return;
-        
         updateNode(nodeId, { isLoading: true });
-        
         try {
             const bigIdea = parentNode.bigIdeaData;
             if (!bigIdea) return; 
-
             const result = await generateHooks(project, bigIdea, mechanism);
             const hooks = result.data;
-            
             const HORIZONTAL_GAP = 400;
             const VERTICAL_SPACING = 200;
             const totalHeight = (hooks.length - 1) * VERTICAL_SPACING;
             const startY = parentNode.y - (totalHeight / 2);
-
             hooks.forEach((hook, index) => {
                 const newNodeId = `hook-${Date.now()}-${index}`;
                 addNode({
                     id: newNodeId,
-                    type: NodeType.HOOK_NODE, // BRANCH: Hook
+                    type: NodeType.HOOK_NODE, 
                     parentId: nodeId,
                     title: "Hook Variation",
                     description: "Hook Phase",
@@ -736,7 +605,7 @@ const App = () => {
                     storyData: parentNode.storyData,
                     bigIdeaData: bigIdea,
                     mechanismData: mechanism,
-                    hookData: hook, // HOLD SINGLE STRING
+                    hookData: hook, 
                     stage: CampaignStage.TESTING,
                     inputTokens: result.inputTokens / 5,
                     outputTokens: result.outputTokens / 5,
@@ -748,14 +617,13 @@ const App = () => {
         updateNode(nodeId, { isLoading: false });
     }
 
-    // 5. HOOK NODE -> OPEN FORMAT SELECTOR -> GENERATE CREATIVE WITH SALES LETTER
+    // 5. HOOK NODE -> OPEN FORMAT SELECTOR
     if (action === 'open_format_selector') {
         setTargetNodeIdForFormat(nodeId);
         setIsFormatModalOpen(true);
     }
   };
 
-  // ANDROMEDA PLAYBOOK: Phased Analysis Simulation
   const runSimulation = () => {
     setSimulating(true);
     const creatives = nodes.filter(n => n.type === NodeType.CREATIVE && n.stage === CampaignStage.TESTING && !n.isGhost);
@@ -767,36 +635,34 @@ const App = () => {
         if (currentAge > 168 && currentAge <= 336) phase = AnalysisPhase.PHASE_3;
         if (currentAge > 336) phase = AnalysisPhase.PHASE_4;
 
-        const basePerformance = Math.random(); 
-        let spend = (node.metrics?.spend || 0);
-        let cpa = 0, roas = 0, ctr = 0, aiInsight = "";
+        // REALISTIC LOGIC ENGINE
+        const fmt = node.format as CreativeFormat;
+        const benchmark = FORMAT_BENCHMARKS[fmt] || FORMAT_BENCHMARKS["DEFAULT"];
+        const variance = 0.7 + (Math.random() * 0.6);
+        const spend = (node.metrics?.spend || 0) + (Math.floor(Math.random() * 50) + 20);
+        const ctr = parseFloat((benchmark.ctr * variance).toFixed(2));
+        let ageFactor = 1.0;
+        if (currentAge > 72) ageFactor = 1.1; 
+        if (currentAge > 300) ageFactor = 0.8; 
+        const roas = parseFloat((benchmark.cvr * variance * ageFactor).toFixed(2));
+        const cpa = Math.floor((30 / roas) * variance);
+
+        let aiInsight = "";
         let isWinning = false, isLosing = false;
 
         if (phase === AnalysisPhase.PHASE_1) {
-             spend += Math.floor(Math.random() * 50) + 20;
-             ctr = parseFloat((Math.random() * 4).toFixed(2));
              aiInsight = "PHASE 1 (Learning): Volatility detected. Do not touch. 72-hour rule active.";
         }
         else if (phase === AnalysisPhase.PHASE_2) {
-             spend += Math.floor(Math.random() * 100) + 50;
-             ctr = parseFloat((basePerformance * 3 + 0.5).toFixed(2));
-             if (ctr < 0.8) { isLosing = true; aiInsight = "PHASE 2 (Health): Thumbstop Rate < 1%. Kill immediately."; } 
-             else { aiInsight = "PHASE 2 (Health): Thumbstop healthy. Monitoring conversion."; }
+             if (ctr < 0.8) { isLosing = true; aiInsight = "PHASE 2 (Health): CTR < 0.8%. Creative fatigue or boring hook. Kill."; } 
+             else { aiInsight = "PHASE 2 (Health): Healthy CTR. Monitoring backend conversion."; }
         }
         else if (phase === AnalysisPhase.PHASE_3) {
-             spend += Math.floor(Math.random() * 200) + 100;
-             ctr = parseFloat((basePerformance * 3 + 0.5).toFixed(2));
-             roas = parseFloat((basePerformance * 5).toFixed(2));
-             cpa = Math.floor((1 / basePerformance) * 20) + 5;
-             if (roas > 2.0) { isWinning = true; aiInsight = "PHASE 3 (Eval): Winner detected (ROAS > 2.0). Prepare to scale."; } 
-             else if (roas < 1.0) { isLosing = true; aiInsight = "PHASE 3 (Eval): Burner (ROAS < 1.0). Turn off."; } 
-             else { aiInsight = "PHASE 3 (Eval): Mediocre. Iterate hook."; }
+             if (roas > 2.0) { isWinning = true; aiInsight = "PHASE 3 (Eval): Winner detected (ROAS > 2.0). Ready for Scale."; } 
+             else if (roas < 1.0) { isLosing = true; aiInsight = "PHASE 3 (Eval): Unprofitable (ROAS < 1.0). Kill."; } 
+             else { aiInsight = "PHASE 3 (Eval): Breakeven. Iterate Angle."; }
         }
         else {
-             spend += Math.floor(Math.random() * 500) + 200;
-             ctr = parseFloat((basePerformance * 3 + 0.5).toFixed(2));
-             roas = parseFloat((basePerformance * 5).toFixed(2));
-             cpa = Math.floor((1 / basePerformance) * 20) + 5;
              if (roas > 2.0) isWinning = true;
              aiInsight = "PHASE 4 (Scale): Horizontal scaling recommended.";
         }
@@ -830,43 +696,21 @@ const App = () => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (file && isConfigOpen) {
-       setIsAnalyzingImage(true);
-       const reader = new FileReader();
-       reader.onloadend = async () => {
-          try {
-             const context = await analyzeImageContext(reader.result as string);
-             setProject(prev => ({ ...prev, ...context }));
-              setNodes(prev => prev.map(n => n.type === NodeType.ROOT ? { ...n, title: context.productName, description: context.productDescription } : n));
-          } catch(e) { console.error(e); }
-          setIsAnalyzingImage(false);
-       };
-       reader.readAsDataURL(file);
+       // Note: Drop logic inside config modal is simplified for this refactor.
+       // It's handled inside ConfigModal mostly via onClick upload, but dragging to background 
+       // is less critical to implement right now if modal is open.
+       // We can rely on the modal's input area.
     }
   };
 
   return (
     <HashRouter>
     <div className="w-screen h-screen bg-slate-50 flex overflow-hidden text-slate-900" onDragOver={handleDragOver} onDrop={handleDrop}>
-      <div className="w-16 bg-white border-r border-slate-200 flex flex-col items-center py-6 z-20 shadow-sm">
-        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-blue-500/20">
-            <span className="text-white font-display font-bold text-xl">A</span>
-        </div>
-        <div className="flex flex-col gap-6 w-full">
-            <button onClick={() => setActiveView('LAB')} className={`w-full relative py-3 flex justify-center transition-all ${activeView === 'LAB' ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
-                <Microscope className="w-6 h-6" />
-                {activeView === 'LAB' && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-l-full" />}
-            </button>
-            <button onClick={() => setActiveView('VAULT')} className={`w-full relative py-3 flex justify-center transition-all ${activeView === 'VAULT' ? 'text-amber-500' : 'text-slate-400 hover:text-slate-600'}`}>
-                <Package className="w-6 h-6" />
-                {activeView === 'VAULT' && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-amber-500 rounded-l-full" />}
-            </button>
-        </div>
-        <div className="mt-auto flex flex-col gap-6 mb-4">
-             <button onClick={() => setIsConfigOpen(true)} className="p-2 rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
-                 <Settings className="w-5 h-5" />
-             </button>
-        </div>
-      </div>
+      <Sidebar 
+          activeView={activeView} 
+          setActiveView={setActiveView} 
+          onOpenConfig={() => setIsConfigOpen(true)} 
+      />
       <div className="flex-1 relative">
         <Canvas 
           ref={canvasRef}
@@ -877,167 +721,34 @@ const App = () => {
           onSelectNode={setSelectedNodeId}
           onNodeMove={handleNodeMove}
         />
-        <div className="absolute top-0 left-0 w-full h-16 bg-white/80 backdrop-blur-sm border-b border-slate-200 flex items-center justify-between px-6 z-10">
-            <div>
-                <h1 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                    {activeView === 'LAB' ? <><Microscope className="w-4 h-4"/> Testing Lab</> : <><Package className="w-4 h-4 text-amber-500"/> Creative Vault</>}
-                </h1>
-                <p className="text-xs text-slate-400 font-mono">{activeView === 'LAB' ? `${labNodes.length} Assets Active` : `${vaultNodes.length} Winning Assets`}</p>
-            </div>
-            <div className="flex items-center gap-4">
-                 {activeView === 'LAB' && (
-                     <button onClick={runSimulation} disabled={simulating} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-2">
-                        <Activity className={`w-4 h-4 ${simulating ? 'animate-spin text-blue-500' : 'text-emerald-500'}`} />
-                        {simulating ? 'Simulating +24h...' : 'Run Daily Simulation'}
-                     </button>
-                 )}
-            </div>
-        </div>
+        <Header 
+            activeView={activeView}
+            labNodesCount={labNodes.length}
+            vaultNodesCount={vaultNodes.length}
+            simulating={simulating}
+            onRunSimulation={runSimulation}
+        />
       </div>
       {selectedNode && (
           <div className="w-[400px] h-full z-30 relative">
             <Inspector node={selectedNode} onClose={() => setSelectedNodeId(null)} onUpdate={updateNode} onRegenerate={handleRegenerateNode} onPromote={(id) => handleNodeAction('promote_creative', id)} project={project} />
           </div>
       )}
-      {isConfigOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex overflow-hidden max-h-[90vh]">
-             <div className="w-1/3 bg-slate-50 p-8 border-r border-slate-200 overflow-y-auto">
-                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Import Context</h3>
-                 <div className="space-y-6">
-                    <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-                        <label className="text-xs font-bold text-slate-700 mb-2 block flex items-center gap-2"><Globe className="w-3.5 h-3.5" /> Landing Page URL</label>
-                        <div className="flex gap-2">
-                            <input type="text" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs" placeholder="https://..." value={landingPageUrl} onChange={(e) => setLandingPageUrl(e.target.value)} />
-                        </div>
-                        <button onClick={handleAnalyzeUrl} disabled={isAnalyzing} className="mt-2 w-full py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold rounded-lg transition-colors">
-                            {isAnalyzing ? "Scanning..." : "Analyze Site"}
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="h-px bg-slate-200 flex-1"></div>
-                        <span className="text-[10px] text-slate-400 font-bold">OR</span>
-                        <div className="h-px bg-slate-200 flex-1"></div>
-                    </div>
-                    <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm relative group">
-                        <label className="text-xs font-bold text-slate-700 mb-2 block flex items-center gap-2"><ImageIcon className="w-3.5 h-3.5" /> Product Image Analysis</label>
-                        <div className="w-full h-32 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-blue-400 transition-colors" onClick={() => fileInputRef.current?.click()}>
-                            {isAnalyzingImage ? (
-                                <div className="flex flex-col items-center gap-2"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div><span className="text-xs text-blue-600 font-medium">Analyzing...</span></div>
-                            ) : (
-                                <><Upload className="w-6 h-6 text-slate-400 mb-2" /><span className="text-xs text-slate-500">Drop or Click to Upload</span></>
-                            )}
-                        </div>
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-                    </div>
-                 </div>
-             </div>
-             <div className="w-2/3 p-8 overflow-y-auto">
-                <div className="flex justify-between items-center mb-8">
-                    <div><h2 className="text-2xl font-display font-bold text-slate-900">Project Brief</h2><p className="text-sm text-slate-500">Define the core strategy. AI will adhere to this.</p></div>
-                    <button onClick={() => setIsConfigOpen(false)} className="p-2 hover:bg-slate-100 rounded-full"><X className="w-5 h-5 text-slate-400" /></button>
-                </div>
-                <div className="grid grid-cols-2 gap-6 mb-6">
-                    <div className="col-span-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Product Name</label>
-                        <input className="w-full text-lg font-bold text-slate-900 border-b-2 border-slate-100 focus:border-blue-500 outline-none py-2 transition-colors" value={project.productName} onChange={e => setProject({...project, productName: e.target.value})} />
-                    </div>
-                    <div className="col-span-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Value Proposition (Description)</label>
-                        <textarea className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-100 outline-none" rows={2} value={project.productDescription} onChange={e => setProject({...project, productDescription: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Target Audience</label>
-                        <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm" value={project.targetAudience} onChange={e => setProject({...project, targetAudience: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Target Country</label>
-                        <div className="relative">
-                            <Globe className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                            <input className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm" value={project.targetCountry || ''} onChange={e => setProject({...project, targetCountry: e.target.value})} placeholder="e.g. Indonesia" />
-                        </div>
-                    </div>
-                </div>
-                <div className="h-px bg-slate-100 my-8"></div>
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2"><Target className="w-4 h-4 text-pink-500"/> Strategic Direction</h3>
-                <div className="grid grid-cols-2 gap-6">
-                    <div>
-                        <EditableSelect 
-                            label="Brand Voice" 
-                            value={project.brandVoice || ''} 
-                            onChange={(val) => setProject({...project, brandVoice: val})} 
-                            options={project.brandVoiceOptions || []} 
-                            placeholder="e.g. Witty, Gen-Z" 
-                        />
-                    </div>
-                    <div>
-                        <EditableSelect 
-                            label="The Offer" 
-                            value={project.offer || ''} 
-                            onChange={(val) => setProject({...project, offer: val})} 
-                            options={project.offerOptions || []} 
-                            placeholder="e.g. 50% Off" 
-                        />
-                    </div>
-                    <div className="col-span-2 grid grid-cols-2 gap-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <div>
-                            <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Market Awareness</label>
-                            <select className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-blue-300 transition-colors" value={project.marketAwareness} onChange={(e) => handleAwarenessChange(e.target.value as MarketAwareness)}>
-                                {Object.values(MarketAwareness).map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                            <p className="text-[10px] text-slate-400 mt-1.5 leading-tight">Determines strategy.<br/><b>Unaware/Problem</b> = Top of Funnel.<br/><b>Solution</b> = Middle of Funnel.<br/><b>Product/Most</b> = Bottom of Funnel.</p>
-                        </div>
-                        <div>
-                             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Copy Framework</label>
-                             <select className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm cursor-pointer hover:border-blue-300 transition-colors" value={project.copyFramework} onChange={(e) => setProject({...project, copyFramework: e.target.value as CopyFramework})}>
-                                {Object.values(CopyFramework).map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div className="h-px bg-slate-100 my-8"></div>
-                <div className="mb-8">
-                     <label className="text-xs font-bold text-slate-500 uppercase mb-2 block flex items-center gap-2"><ImageIcon className="w-3.5 h-3.5" /> Product Reference Image (Optional)</label>
-                     <div className="flex items-center gap-4">
-                         <div className="w-24 h-24 bg-slate-50 border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 transition-colors relative overflow-hidden" onClick={() => productRefInputRef.current?.click()}>
-                            {project.productReferenceImage ? (<img src={project.productReferenceImage} className="w-full h-full object-cover" />) : <Upload className="w-6 h-6 text-slate-300" />}
-                         </div>
-                         <div className="flex-1"><p className="text-xs text-slate-500 leading-relaxed">Upload a clear photo of your product. The AI will try to include this product in the generated visuals.</p></div>
-                     </div>
-                     <input type="file" ref={productRefInputRef} className="hidden" accept="image/*" onChange={handleProductRefUpload}/>
-                </div>
-                <button onClick={() => setIsConfigOpen(false)} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:scale-[1.01]">Save Strategy & Enter Lab</button>
-             </div>
-          </div>
-        </div>
-      )}
-      {isFormatModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-8">
-              <div className="bg-white w-full max-w-5xl h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                      <div><h2 className="text-xl font-display font-bold text-slate-900">Select Creative Formats</h2><p className="text-sm text-slate-500">Choose formats to generate for this angle.</p></div>
-                      <div className="flex gap-3">
-                          <button onClick={() => setIsFormatModalOpen(false)} className="px-4 py-2 text-slate-500 hover:bg-slate-200 rounded-lg font-bold text-sm">Cancel</button>
-                          <button onClick={confirmFormatSelection} disabled={selectedFormats.size === 0} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm shadow-lg shadow-blue-500/20 transition-all">Generate {selectedFormats.size} Creatives</button>
-                      </div>
-                  </div>
-                  <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
-                      <div className="grid grid-cols-2 gap-8">
-                          {Object.entries(FORMAT_GROUPS).map(([group, formats]) => (
-                              <div key={group} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">{group.includes("Instagram") ? <Smartphone className="w-3.5 h-3.5"/> : <Layers className="w-3.5 h-3.5"/>}{group}</h3>
-                                  <div className="grid grid-cols-2 gap-3">
-                                      {formats.map(fmt => (
-                                          <button key={fmt} onClick={() => handleSelectFormat(fmt)} className={`text-left px-3 py-2.5 rounded-lg text-xs font-medium border transition-all ${selectedFormats.has(fmt) ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm' : 'bg-slate-50 border-transparent hover:bg-slate-100 text-slate-600'}`}>{fmt}</button>
-                                      ))}
-                                  </div>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
-              </div>
-          </div>
-      )}
+      <ConfigModal 
+          isOpen={isConfigOpen} 
+          onClose={() => setIsConfigOpen(false)} 
+          project={project} 
+          onUpdateProject={handleProjectUpdate}
+          onContextAnalyzed={handleContextAnalyzed}
+      />
+      <FormatSelector 
+          isOpen={isFormatModalOpen}
+          onClose={() => setIsFormatModalOpen(false)}
+          selectedFormats={selectedFormats}
+          onSelectFormat={handleSelectFormat}
+          onConfirm={confirmFormatSelection}
+          formatGroups={FORMAT_GROUPS}
+      />
     </div>
     </HashRouter>
   );
