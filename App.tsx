@@ -159,6 +159,15 @@ const App = () => {
 
     updateNode(parentNodeId, { isLoading: true });
 
+    // --- LOGIC UPGRADE: MAFIA OFFER INJECTION ---
+    // If the parent node has a generated Mafia Offer, use it instead of the generic project offer.
+    let offerContext = project.offer;
+    if (parentNode.mafiaOffer) {
+        const mo = parentNode.mafiaOffer;
+        offerContext = `MAFIA OFFER HEADLINE: "${mo.headline}". \nVALUE STACK: ${mo.valueStack.join(' + ')}. \nRISK REVERSAL (GUARANTEE): ${mo.riskReversal}. \nSCARCITY: ${mo.scarcity}`;
+    }
+    const projectContextForGen = { ...project, offer: offerContext };
+
     const HORIZONTAL_GAP = 550; 
     const COL_SPACING = 350;    
     const ROW_SPACING = 400;    
@@ -220,20 +229,20 @@ const App = () => {
 
             if (!isHookSource && !isShortcut) {
                  updateNode(node.id, { description: "Art Director: Defining visual style..." });
-                 const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
+                 const conceptResult = await generateCreativeConcept(projectContextForGen, personaToUse, angleToUse, fmt);
                  accumulatedInput += conceptResult.inputTokens;
                  accumulatedOutput += conceptResult.outputTokens;
                  visualConcept = conceptResult.data;
 
                  updateNode(node.id, { description: "Copywriter: Drafting..." });
-                 const copyResult = await generateAdCopy(project, parentNode.meta || { name: personaToUse }, visualConcept, fmt);
+                 const copyResult = await generateAdCopy(projectContextForGen, parentNode.meta || { name: personaToUse }, visualConcept, fmt);
                  accumulatedInput += copyResult.inputTokens;
                  accumulatedOutput += copyResult.outputTokens;
                  finalAdCopy = copyResult.data;
             } else {
                  if (isHookSource && parentNode.storyData && parentNode.bigIdeaData && parentNode.mechanismData && parentNode.hookData) {
                     updateNode(node.id, { description: "Writing Caption..." });
-                    const letterResult = await generateSalesLetter(project, parentNode.storyData, parentNode.bigIdeaData, parentNode.mechanismData, parentNode.hookData);
+                    const letterResult = await generateSalesLetter(projectContextForGen, parentNode.storyData, parentNode.bigIdeaData, parentNode.mechanismData, parentNode.hookData);
                     accumulatedInput += letterResult.inputTokens;
                     accumulatedOutput += letterResult.outputTokens;
                     
@@ -244,12 +253,12 @@ const App = () => {
                     };
                  } else {
                      updateNode(node.id, { description: "Copywriter: Drafting (Shortcut)..." });
-                     const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
+                     const conceptResult = await generateCreativeConcept(projectContextForGen, personaToUse, angleToUse, fmt);
                      accumulatedInput += conceptResult.inputTokens;
                      accumulatedOutput += conceptResult.outputTokens;
                      visualConcept = conceptResult.data;
                      
-                     const copyResult = await generateAdCopy(project, { name: personaToUse }, visualConcept, fmt);
+                     const copyResult = await generateAdCopy(projectContextForGen, { name: personaToUse }, visualConcept, fmt);
                      accumulatedInput += copyResult.inputTokens;
                      accumulatedOutput += copyResult.outputTokens;
                      finalAdCopy = copyResult.data;
@@ -257,7 +266,7 @@ const App = () => {
 
                  if (!visualConcept.visualScene) {
                      updateNode(node.id, { description: "Art Director: Visualizing..." });
-                     const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
+                     const conceptResult = await generateCreativeConcept(projectContextForGen, personaToUse, angleToUse, fmt);
                      accumulatedInput += conceptResult.inputTokens;
                      accumulatedOutput += conceptResult.outputTokens;
                      visualConcept = conceptResult.data;
@@ -269,7 +278,7 @@ const App = () => {
 
             updateNode(node.id, { description: "Visualizer: Rendering..." });
             const imgResult = await generateCreativeImage(
-                project, personaToUse, angleToUse, fmt, 
+                projectContextForGen, personaToUse, angleToUse, fmt, 
                 visualConcept.visualScene, visualConcept.visualStyle, visualConcept.technicalPrompt, "1:1"
             );
             
@@ -289,7 +298,7 @@ const App = () => {
             
             if (isCarousel) {
                 const slidesResult = await generateCarouselSlides(
-                    project, fmt, angleToUse, visualConcept.visualScene, visualConcept.visualStyle, visualConcept.technicalPrompt
+                    projectContextForGen, fmt, angleToUse, visualConcept.visualScene, visualConcept.visualStyle, visualConcept.technicalPrompt
                 );
                 accumulatedInput += slidesResult.inputTokens;
                 accumulatedOutput += slidesResult.outputTokens;

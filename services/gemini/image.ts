@@ -46,6 +46,21 @@ export const generateCreativeImage = async (
     If SE Asia -> Use Asian models, scooters, tropical greenery, warmer lighting.
   `;
 
+  // === LOGIC UPGRADE: SENTIMENT AWARENESS ---
+  const isNegativeAngle = /stop|avoid|warning|danger|don't|mistake|worst|kill|never/i.test(angle);
+  let moodPrompt = "Lighting: Natural, inviting, high energy. Emotion: Positive, Solution-oriented.";
+  
+  if (isNegativeAngle) {
+      moodPrompt = "Lighting: High contrast, dramatic shadows, moody atmosphere, perhaps a subtle red tint. Emotion: Serious, Urgent, Warning vibe. Subject should NOT be smiling. Show concern or frustration.";
+  }
+
+  // === LOGIC UPGRADE: LEAD MAGNET VISUAL COHERENCE ---
+  const isLeadMagnet = /guide|checklist|report|pdf|cheat sheet|blueprint|system/i.test(angle);
+  let leadMagnetInstruction = "";
+  if (isLeadMagnet && format !== CreativeFormat.LEAD_MAGNET_3D) {
+      leadMagnetInstruction = `IMPORTANT: The subject is holding a printed document, binder, or iPad displaying a report titled "${angle}". Do NOT show a retail product bottle. Show the information asset.`;
+  }
+
   // === IMAGE ENHANCER TIERS ===
   const professionalEnhancers = "Photorealistic, 8k resolution, highly detailed, shot on 35mm lens, depth of field, natural lighting, sharp focus.";
   
@@ -86,9 +101,9 @@ export const generateCreativeImage = async (
       if (format === CreativeFormat.MS_PAINT) {
           finalPrompt = `A crude, badly drawn MS Paint illustration related to ${project.productName}. Stick figures, comic sans text, bright primary colors, looks like a child or amateur drew it. Authentically bad internet meme style. ${SAFETY_GUIDELINES}`;
       } else if (format === CreativeFormat.UGLY_VISUAL) {
-          finalPrompt = `A very low quality, cursed image vibe. ${technicalPrompt || visualScene}. ${trashTierEnhancers} ${culturePrompt} ${SAFETY_GUIDELINES}.`;
+          finalPrompt = `A very low quality, cursed image vibe. ${technicalPrompt || visualScene}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
       } else {
-          finalPrompt = `${technicalPrompt}. ${trashTierEnhancers} ${culturePrompt} ${SAFETY_GUIDELINES}`;
+          finalPrompt = `${technicalPrompt}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
       }
   }
   else if (isNativeStory) {
@@ -96,7 +111,7 @@ export const generateCreativeImage = async (
 
       if (format === CreativeFormat.EDUCATIONAL_RANT) {
           // Green Screen Logic
-          finalPrompt = `A person engaging with the camera, 'Green Screen' effect style. Background is a screenshot of a news article or a graph related to ${angle}. The person looks passionate/angry (ranting). Native TikTok/Reels aesthetic. UI overlay: "Stop doing this!". ${ugcEnhancers} ${culturePrompt} ${SAFETY_GUIDELINES}`;
+          finalPrompt = `A person engaging with the camera, 'Green Screen' effect style. Background is a screenshot of a news article or a graph related to ${angle}. The person looks passionate/angry (ranting). Native TikTok/Reels aesthetic. UI overlay: "Stop doing this!". ${ugcEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
       } else {
         // 1. Determine "Candid Environment"
         const randomEnv = Math.random();
@@ -120,7 +135,7 @@ export const generateCreativeImage = async (
         }
 
         if (environment) {
-            finalPrompt = `A vertical, authentic UGC photo of a person ${environment}. ${uiOverlay} ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}. Make it look like a real Instagram Story.`;
+            finalPrompt = `A vertical, authentic UGC photo of a person ${environment}. ${uiOverlay} ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}. Make it look like a real Instagram Story.`;
         } else {
             finalPrompt = `${uiOverlay} ${appliedEnhancer} ${SAFETY_GUIDELINES}. Photorealistic UI render.`;
         }
@@ -168,10 +183,10 @@ export const generateCreativeImage = async (
 
   // === OTHER FORMATS ===
   else if (format === CreativeFormat.STICKY_NOTE_REALISM) {
-    finalPrompt = `A real yellow post-it sticky note stuck on a surface. Handwritten black marker text on the note says: "${angle}". Sharp focus on the text, realistic paper texture, soft shadows. ${appliedEnhancer}`;
+    finalPrompt = `A real yellow post-it sticky note stuck on a surface. Handwritten black marker text on the note says: "${angle}". Sharp focus on the text, realistic paper texture, soft shadows. ${appliedEnhancer} ${moodPrompt}`;
   }
   else if (format === CreativeFormat.BENEFIT_POINTERS) {
-    finalPrompt = `A high-quality product photography shot of ${project.productName}. Clean background. Sleek, modern graphic lines pointing to 3 key features. Style: "Anatomy Breakdown". ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}.`;
+    finalPrompt = `A high-quality product photography shot of ${project.productName}. Clean background. Sleek, modern graphic lines pointing to 3 key features. Style: "Anatomy Breakdown". ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
   }
   else if (format === CreativeFormat.US_VS_THEM) {
     finalPrompt = `A split screen comparison image. Left side (Them): Cloudy, sad, messy, labeled "Them". Right side (Us): Bright, happy, organized, labeled "Us". Subject: ${project.productName}. ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}.`;
@@ -184,16 +199,16 @@ export const generateCreativeImage = async (
       if (format === CreativeFormat.CAROUSEL_REAL_STORY) {
           appliedEnhancer = ugcEnhancers;
       }
-      finalPrompt = `${technicalPrompt}. ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
+      finalPrompt = `${technicalPrompt}. ${leadMagnetInstruction} ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
   }
   else if (isService) {
-      finalPrompt = `${contextInjection} ${technicalPrompt}. ${culturePrompt} ${appliedEnhancer} ${SAFETY_GUIDELINES}. (Note: This is a service, do not show a retail box. Show the person experiencing the result).`;
+      finalPrompt = `${contextInjection} ${technicalPrompt}. ${culturePrompt} ${moodPrompt} ${appliedEnhancer} ${SAFETY_GUIDELINES}. (Note: This is a service, do not show a retail box. Show the person experiencing the result).`;
   }
   else {
      if (technicalPrompt && technicalPrompt.length > 20) {
-         finalPrompt = `${contextInjection} ${technicalPrompt}. ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
+         finalPrompt = `${contextInjection} ${technicalPrompt}. ${leadMagnetInstruction} ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
      } else {
-         finalPrompt = `${contextInjection} ${visualScene}. Style: ${visualStyle || getRandomStyle()}. ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
+         finalPrompt = `${contextInjection} ${visualScene}. Style: ${visualStyle || getRandomStyle()}. ${leadMagnetInstruction} ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
      }
   }
 
