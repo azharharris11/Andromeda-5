@@ -7,8 +7,8 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import ConfigModal from './components/ConfigModal';
 import FormatSelector from './components/FormatSelector';
-import { NodeType, NodeData, Edge, ProjectContext, CreativeFormat, CampaignStage, ViewMode, FunnelStage, MarketAwareness, CopyFramework, AnalysisPhase } from './types';
-import { generatePersonas, generateAngles, generateCreativeImage, generateAdCopy, generateCarouselSlides, generateCreativeConcept, checkAdCompliance, analyzeLandingPageContext, analyzeImageContext, generateStoryResearch, generateBigIdeas, generateMechanisms, generateHooks, generateSalesLetter } from './services/geminiService';
+import { NodeType, NodeData, Edge, ProjectContext, CreativeFormat, CampaignStage, ViewMode, FunnelStage, MarketAwareness, CopyFramework } from './types';
+import { generatePersonas, generateAngles, generateCreativeImage, generateAdCopy, generateCarouselSlides, generateCreativeConcept, checkAdCompliance, analyzeLandingPageContext, analyzeImageContext, generateStoryResearch, generateBigIdeas, generateMechanisms, generateHooks, generateSalesLetter, predictCreativePerformance } from './services/geminiService';
 
 const INITIAL_PROJECT: ProjectContext = {
   productName: "Zenith Focus Gummies",
@@ -24,81 +24,36 @@ const INITIAL_PROJECT: ProjectContext = {
   offerOptions: ["Buy 2 Get 1 Free", "50% Off First Order", "Free Shipping Worldwide", "Bundle & Save 30%", "$10 Welcome Coupon"]
 };
 
-// --- SIMULATION BENCHMARKS ---
-const FORMAT_BENCHMARKS: Record<string, { ctr: number, cvr: number }> = {
-    // High Engagement, Low Sales (Top of Funnel)
-    [CreativeFormat.MEME]: { ctr: 2.5, cvr: 0.5 },
-    [CreativeFormat.TWITTER_REPOST]: { ctr: 2.0, cvr: 0.8 },
-    [CreativeFormat.REDDIT_THREAD]: { ctr: 2.2, cvr: 0.7 },
-    
-    // Balanced (Middle of Funnel)
-    [CreativeFormat.UGC_MIRROR]: { ctr: 1.5, cvr: 1.2 },
-    [CreativeFormat.STORY_QNA]: { ctr: 1.4, cvr: 1.0 },
-    [CreativeFormat.CAROUSEL_REAL_STORY]: { ctr: 1.8, cvr: 1.3 },
-    
-    // High Sales, Low Engagement (Bottom of Funnel / Logic)
-    [CreativeFormat.US_VS_THEM]: { ctr: 0.9, cvr: 2.5 },
-    [CreativeFormat.BENEFIT_POINTERS]: { ctr: 1.0, cvr: 2.2 },
-    [CreativeFormat.STICKY_NOTE_REALISM]: { ctr: 1.3, cvr: 1.8 },
-    [CreativeFormat.GRAPH_CHART]: { ctr: 0.7, cvr: 2.0 },
-    
-    // Default
-    "DEFAULT": { ctr: 1.0, cvr: 1.0 }
-};
+// --- SABRI SUBY'S 3 OCEANS STRATEGY ---
+const STRATEGIC_GROUPS: Record<string, CreativeFormat[]> = {
+  "🔵 Pattern Interrupt (Stop the Scroll)": [
+    CreativeFormat.MEME,              
+    CreativeFormat.UGLY_VISUAL,       
+    CreativeFormat.REDDIT_THREAD,     
+    CreativeFormat.TWITTER_REPOST,    
+    CreativeFormat.MS_PAINT,          
+    CreativeFormat.HANDHELD_TWEET,
+    CreativeFormat.EDUCATIONAL_RANT 
+  ],
 
-const FORMAT_GROUPS: Record<string, CreativeFormat[]> = {
-  "Carousel Specials (High Engagement)": [
-    CreativeFormat.CAROUSEL_REAL_STORY, // NEW
-    CreativeFormat.CAROUSEL_EDUCATIONAL,
-    CreativeFormat.CAROUSEL_TESTIMONIAL,
-    CreativeFormat.CAROUSEL_PANORAMA,
-    CreativeFormat.CAROUSEL_PHOTO_DUMP,
-  ],
-  "Instagram Native": [
-    CreativeFormat.STORY_QNA, 
-    CreativeFormat.STORY_POLL,
-    CreativeFormat.REELS_THUMBNAIL,
-    CreativeFormat.DM_NOTIFICATION,
+  "🟠 Education & Social Proof (Build Trust)": [
+    CreativeFormat.CAROUSEL_EDUCATIONAL, 
+    CreativeFormat.CAROUSEL_REAL_STORY,  
+    CreativeFormat.US_VS_THEM,           
+    CreativeFormat.GRAPH_CHART,          
+    CreativeFormat.STORY_QNA,            
     CreativeFormat.UGC_MIRROR,
-    CreativeFormat.PHONE_NOTES,
-    CreativeFormat.TWITTER_REPOST,
+    CreativeFormat.BEFORE_AFTER
   ],
-  "Direct Response Winners": [
-    CreativeFormat.BENEFIT_POINTERS, // NEW
-    CreativeFormat.SOCIAL_COMMENT_STACK, // NEW
-    CreativeFormat.STICKY_NOTE_REALISM, // NEW
-    CreativeFormat.HANDHELD_TWEET, // NEW
-  ],
-  "Logic & Rational": [
-    CreativeFormat.US_VS_THEM,
-    CreativeFormat.GRAPH_CHART,
-    CreativeFormat.TIMELINE_JOURNEY,
-  ],
-  "Social Proof & Voyeurism": [
-    CreativeFormat.CHAT_CONVERSATION,
-    CreativeFormat.REMINDER_NOTIF,
-  ],
-  "Product Centric": [
-    CreativeFormat.POV_HANDS,
+
+  "🔴 High Conversion (Kill the Objection)": [
+    CreativeFormat.BENEFIT_POINTERS,     
+    CreativeFormat.STICKY_NOTE_REALISM,  
+    CreativeFormat.REMINDER_NOTIF,       
+    CreativeFormat.DM_NOTIFICATION,      
+    CreativeFormat.SEARCH_BAR,           
     CreativeFormat.ANNOTATED_PRODUCT,
-    CreativeFormat.SEARCH_BAR,
-  ],
-  "Aesthetic & Mood": [
-    CreativeFormat.COLLAGE_SCRAPBOOK,
-    CreativeFormat.CHECKLIST_TODO,
-    CreativeFormat.AESTHETIC_MINIMAL,
-  ],
-  "Pattern Interrupts": [
-    CreativeFormat.BIG_FONT,
-    CreativeFormat.GMAIL_UX,
-    CreativeFormat.UGLY_VISUAL,
-    CreativeFormat.MS_PAINT,
-    CreativeFormat.MEME,
-    CreativeFormat.LONG_TEXT,
-    CreativeFormat.BEFORE_AFTER,
-    CreativeFormat.CARTOON,
-    CreativeFormat.WHITEBOARD,
-    CreativeFormat.REDDIT_THREAD
+    CreativeFormat.CAROUSEL_TESTIMONIAL
   ]
 };
 
@@ -145,14 +100,12 @@ const App = () => {
       setNodes(prev => prev.map(n => n.id === id ? { ...n, x, y } : n));
   };
 
-  // --- CONFIG HANDLERS ---
   const handleProjectUpdate = (updates: Partial<ProjectContext>) => {
       setProject(prev => ({...prev, ...updates}));
   };
 
   const handleContextAnalyzed = (context: ProjectContext) => {
       setProject(prev => ({...prev, ...context}));
-      // Update Root Node to reflect new product details
       setNodes(prev => prev.map(n => n.type === NodeType.ROOT ? {
           ...n,
           title: context.productName,
@@ -160,7 +113,6 @@ const App = () => {
       } : n));
   };
 
-  // New: Handle Regeneration from Inspector
   const handleRegenerateNode = async (nodeId: string, aspectRatio: string) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
@@ -202,7 +154,6 @@ const App = () => {
 
     updateNode(parentNodeId, { isLoading: true });
 
-    // Grid Layout Constants
     const HORIZONTAL_GAP = 550; 
     const COL_SPACING = 350;    
     const ROW_SPACING = 400;    
@@ -214,13 +165,11 @@ const App = () => {
 
     const newNodes: NodeData[] = [];
     
-    // Determine context based on parent node type (Shortcuts logic)
     let angleToUse = parentNode.title;
     if (parentNode.type === NodeType.HOOK_NODE && parentNode.hookData) angleToUse = parentNode.hookData;
     else if (parentNode.type === NodeType.BIG_IDEA_NODE && parentNode.bigIdeaData) angleToUse = parentNode.bigIdeaData.headline;
     else if (parentNode.type === NodeType.MECHANISM_NODE && parentNode.mechanismData) angleToUse = parentNode.mechanismData.scientificPseudo;
     
-    // Determine Persona Name
     const personaToUse = parentNode.meta?.personaName || "Story Protagonist";
     
     formats.forEach((format, index) => {
@@ -249,17 +198,12 @@ const App = () => {
       addEdge(parentNodeId, newId);
     });
 
-    // GENERATION PROCESS
     for (const node of newNodes) {
-        // Stagger execution slightly to prevent immediate rate limits
         if (newNodes.indexOf(node) > 0) await new Promise(resolve => setTimeout(resolve, 800));
 
         try {
-            // DETECT IF PARENT IS HOOK OR ANGLE
             const isHookSource = parentNode.type === NodeType.HOOK_NODE;
-            // Also enable shortcut from Big Idea or Mechanism or Story
             const isShortcut = parentNode.type === NodeType.BIG_IDEA_NODE || parentNode.type === NodeType.MECHANISM_NODE || parentNode.type === NodeType.STORY_NODE;
-
             const fmt = node.format as CreativeFormat;
             
             let accumulatedInput = 0;
@@ -268,27 +212,19 @@ const App = () => {
             let finalAdCopy: any = {};
             let visualConcept: any = {};
 
-            // --- BRANCH A: STANDARD FLOW (FROM ANGLE) ---
             if (!isHookSource && !isShortcut) {
-                 // 1. STRATEGIST AGENT
                  updateNode(node.id, { description: "Art Director: Defining visual style..." });
                  const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
                  accumulatedInput += conceptResult.inputTokens;
                  accumulatedOutput += conceptResult.outputTokens;
                  visualConcept = conceptResult.data;
 
-                 // 2. COPYWRITER AGENT
                  updateNode(node.id, { description: "Copywriter: Drafting..." });
                  const copyResult = await generateAdCopy(project, parentNode.meta || { name: personaToUse }, visualConcept);
                  accumulatedInput += copyResult.inputTokens;
                  accumulatedOutput += copyResult.outputTokens;
                  finalAdCopy = copyResult.data;
-            } 
-            
-            // --- BRANCH B: MEGAPROMPT / SHORTCUT FLOW ---
-            else {
-                 // 1. GENERATE SALES LETTER (To be used as Caption)
-                 // If we have full context (Hook Node), use full generator.
+            } else {
                  if (isHookSource && parentNode.storyData && parentNode.bigIdeaData && parentNode.mechanismData && parentNode.hookData) {
                     updateNode(node.id, { description: "Writing Caption..." });
                     const letterResult = await generateSalesLetter(project, parentNode.storyData, parentNode.bigIdeaData, parentNode.mechanismData, parentNode.hookData);
@@ -301,9 +237,7 @@ const App = () => {
                         cta: project.offer || "Learn More"
                     };
                  } else {
-                     // Shortcut path: Use standard copy generator with inferred context
                      updateNode(node.id, { description: "Copywriter: Drafting (Shortcut)..." });
-                     // Need a dummy concept first to feed copywriter
                      const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
                      accumulatedInput += conceptResult.inputTokens;
                      accumulatedOutput += conceptResult.outputTokens;
@@ -315,7 +249,6 @@ const App = () => {
                      finalAdCopy = copyResult.data;
                  }
 
-                 // 2. GENERATE VISUAL CONCEPT (If not already generated in shortcut)
                  if (!visualConcept.visualScene) {
                      updateNode(node.id, { description: "Art Director: Visualizing..." });
                      const conceptResult = await generateCreativeConcept(project, personaToUse, angleToUse, fmt);
@@ -325,11 +258,9 @@ const App = () => {
                  }
             }
 
-            // 3. COMPLIANCE CHECK
             const complianceStatus = await checkAdCompliance(finalAdCopy);
             finalAdCopy.complianceNotes = complianceStatus;
 
-            // 4. VISUALIZER AGENT (Common for both)
             updateNode(node.id, { description: "Visualizer: Rendering..." });
             const imgResult = await generateCreativeImage(
                 project, personaToUse, angleToUse, fmt, 
@@ -341,7 +272,6 @@ const App = () => {
             const imageUrl = imgResult.data;
             if (imageUrl) imageCount++;
 
-            // 5. CAROUSEL HANDLER
             let carouselImages: string[] = [];
             const isCarousel = (
                 fmt === CreativeFormat.CAROUSEL_EDUCATIONAL ||
@@ -395,7 +325,6 @@ const App = () => {
     const parentNode = nodes.find(n => n.id === nodeId);
     if (!parentNode) return;
 
-    // --- STANDARD WORKFLOW ACTIONS ---
     if (action === 'expand_personas') {
       updateNode(nodeId, { isLoading: true });
       try {
@@ -474,8 +403,6 @@ const App = () => {
        setActiveView('VAULT');
     }
 
-    // --- MEGAPROMPT WORKFLOW (MINDMAP BRANCHING LOGIC) ---
-    // 1. ROOT -> 3 STORY NODES
     if (action === 'start_story_flow') {
         updateNode(nodeId, { isLoading: true });
         try {
@@ -489,7 +416,7 @@ const App = () => {
                 const newNodeId = `story-${Date.now()}-${index}`;
                 addNode({
                     id: newNodeId,
-                    type: NodeType.STORY_NODE, // BRANCH: Story Node
+                    type: NodeType.STORY_NODE, 
                     parentId: nodeId,
                     title: story.title,
                     description: "Story Phase",
@@ -507,7 +434,6 @@ const App = () => {
         updateNode(nodeId, { isLoading: false });
     }
 
-    // 2. STORY NODE -> 3 BIG IDEA NODES
     if (action === 'generate_big_ideas') {
         const story = parentNode.storyData;
         if (!story) return;
@@ -542,7 +468,6 @@ const App = () => {
         updateNode(nodeId, { isLoading: false });
     }
 
-    // 3. BIG IDEA NODE -> 3 MECHANISM NODES
     if (action === 'generate_mechanisms') {
         const bigIdea = parentNode.bigIdeaData;
         if (!bigIdea) return;
@@ -578,7 +503,6 @@ const App = () => {
         updateNode(nodeId, { isLoading: false });
     }
 
-    // 4. MECHANISM NODE -> 5 HOOK NODES
     if (action === 'generate_hooks') {
         const mechanism = parentNode.mechanismData;
         if (!mechanism) return;
@@ -617,62 +541,33 @@ const App = () => {
         updateNode(nodeId, { isLoading: false });
     }
 
-    // 5. HOOK NODE -> OPEN FORMAT SELECTOR
     if (action === 'open_format_selector') {
         setTargetNodeIdForFormat(nodeId);
         setIsFormatModalOpen(true);
     }
   };
 
-  const runSimulation = () => {
+  const handlePredictionAudit = async (nodeId: string) => {
+      const node = nodes.find(n => n.id === nodeId);
+      if (!node) return;
+      
+      updateNode(nodeId, { isLoading: true });
+      const result = await predictCreativePerformance(project, node);
+      updateNode(nodeId, { isLoading: false, prediction: result.data });
+  };
+
+  const runGlobalPrediction = async () => {
     setSimulating(true);
     const creatives = nodes.filter(n => n.type === NodeType.CREATIVE && n.stage === CampaignStage.TESTING && !n.isGhost);
     
-    creatives.forEach(node => {
-        const currentAge = (node.metrics?.ageHours || 0) + 24;
-        let phase = AnalysisPhase.PHASE_1;
-        if (currentAge > 72 && currentAge <= 168) phase = AnalysisPhase.PHASE_2;
-        if (currentAge > 168 && currentAge <= 336) phase = AnalysisPhase.PHASE_3;
-        if (currentAge > 336) phase = AnalysisPhase.PHASE_4;
-
-        // REALISTIC LOGIC ENGINE
-        const fmt = node.format as CreativeFormat;
-        const benchmark = FORMAT_BENCHMARKS[fmt] || FORMAT_BENCHMARKS["DEFAULT"];
-        const variance = 0.7 + (Math.random() * 0.6);
-        const spend = (node.metrics?.spend || 0) + (Math.floor(Math.random() * 50) + 20);
-        const ctr = parseFloat((benchmark.ctr * variance).toFixed(2));
-        let ageFactor = 1.0;
-        if (currentAge > 72) ageFactor = 1.1; 
-        if (currentAge > 300) ageFactor = 0.8; 
-        const roas = parseFloat((benchmark.cvr * variance * ageFactor).toFixed(2));
-        const cpa = Math.floor((30 / roas) * variance);
-
-        let aiInsight = "";
-        let isWinning = false, isLosing = false;
-
-        if (phase === AnalysisPhase.PHASE_1) {
-             aiInsight = "PHASE 1 (Learning): Volatility detected. Do not touch. 72-hour rule active.";
+    // Batch processing
+    for (const node of creatives) {
+        if (!node.prediction) {
+            const result = await predictCreativePerformance(project, node);
+            updateNode(node.id, { prediction: result.data });
         }
-        else if (phase === AnalysisPhase.PHASE_2) {
-             if (ctr < 0.8) { isLosing = true; aiInsight = "PHASE 2 (Health): CTR < 0.8%. Creative fatigue or boring hook. Kill."; } 
-             else { aiInsight = "PHASE 2 (Health): Healthy CTR. Monitoring backend conversion."; }
-        }
-        else if (phase === AnalysisPhase.PHASE_3) {
-             if (roas > 2.0) { isWinning = true; aiInsight = "PHASE 3 (Eval): Winner detected (ROAS > 2.0). Ready for Scale."; } 
-             else if (roas < 1.0) { isLosing = true; aiInsight = "PHASE 3 (Eval): Unprofitable (ROAS < 1.0). Kill."; } 
-             else { aiInsight = "PHASE 3 (Eval): Breakeven. Iterate Angle."; }
-        }
-        else {
-             if (roas > 2.0) isWinning = true;
-             aiInsight = "PHASE 4 (Scale): Horizontal scaling recommended.";
-        }
-        
-        updateNode(node.id, {
-            metrics: { spend, cpa, roas, impressions: spend * 40, ctr, ageHours: currentAge },
-            analysisPhase: phase, isWinning, isLosing, aiInsight
-        });
-    });
-    setTimeout(() => setSimulating(false), 1500);
+    }
+    setSimulating(false);
   };
 
   const handleSelectFormat = (fmt: CreativeFormat) => {
@@ -694,13 +589,6 @@ const App = () => {
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    const file = e.dataTransfer.files?.[0];
-    if (file && isConfigOpen) {
-       // Note: Drop logic inside config modal is simplified for this refactor.
-       // It's handled inside ConfigModal mostly via onClick upload, but dragging to background 
-       // is less critical to implement right now if modal is open.
-       // We can rely on the modal's input area.
-    }
   };
 
   return (
@@ -726,12 +614,20 @@ const App = () => {
             labNodesCount={labNodes.length}
             vaultNodesCount={vaultNodes.length}
             simulating={simulating}
-            onRunSimulation={runSimulation}
+            onRunSimulation={runGlobalPrediction}
         />
       </div>
       {selectedNode && (
           <div className="w-[400px] h-full z-30 relative">
-            <Inspector node={selectedNode} onClose={() => setSelectedNodeId(null)} onUpdate={updateNode} onRegenerate={handleRegenerateNode} onPromote={(id) => handleNodeAction('promote_creative', id)} project={project} />
+            <Inspector 
+                node={selectedNode} 
+                onClose={() => setSelectedNodeId(null)} 
+                onUpdate={updateNode} 
+                onRegenerate={handleRegenerateNode} 
+                onPromote={(id) => handleNodeAction('promote_creative', id)} 
+                project={project} 
+                onAnalyze={handlePredictionAudit}
+            />
           </div>
       )}
       <ConfigModal 
@@ -747,7 +643,7 @@ const App = () => {
           selectedFormats={selectedFormats}
           onSelectFormat={handleSelectFormat}
           onConfirm={confirmFormatSelection}
-          formatGroups={FORMAT_GROUPS}
+          formatGroups={STRATEGIC_GROUPS}
       />
     </div>
     </HashRouter>

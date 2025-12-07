@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Microscope, Package, Activity } from 'lucide-react';
+import { Microscope, Package, Activity, BrainCircuit } from 'lucide-react';
 import { ViewMode } from '../types';
 
 interface HeaderProps {
@@ -23,8 +23,8 @@ const Header: React.FC<HeaderProps> = ({ activeView, labNodesCount, vaultNodesCo
             <div className="flex items-center gap-4">
                  {activeView === 'LAB' && (
                      <button onClick={onRunSimulation} disabled={simulating} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-2">
-                        <Activity className={`w-4 h-4 ${simulating ? 'animate-spin text-blue-500' : 'text-emerald-500'}`} />
-                        {simulating ? 'Simulating +24h...' : 'Run Daily Simulation'}
+                        <BrainCircuit className={`w-4 h-4 ${simulating ? 'animate-pulse text-indigo-500' : 'text-indigo-500'}`} />
+                        {simulating ? 'Auditing Assets...' : 'Run Global Audit'}
                      </button>
                  )}
             </div>

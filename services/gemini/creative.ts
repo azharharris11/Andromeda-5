@@ -11,7 +11,6 @@ export const generateCreativeConcept = async (
 ): Promise<GenResult<CreativeConcept>> => {
   const model = "gemini-2.5-flash";
 
-  // SYSTEM: Congruency Engine (The Jeans Rule)
   const awareness = project.marketAwareness || "Problem Aware";
   
   let awarenessInstruction = "";
@@ -97,26 +96,37 @@ export const generateAdCopy = async (
   const country = project.targetCountry || "USA";
   const isIndo = country.toLowerCase().includes("indonesia");
 
-  // SYSTEM: Ship Fast (Step 5)
-  let languageInstruction = `
-    TARGET COUNTRY: ${country}.
-    Write in the native language of ${country}.
-    Adapt to local slang and buying behavior. 
-  `;
+  // SYSTEM: TONE CALIBRATION (FEW-SHOT PROMPTING)
+  let toneInstruction = "";
   
-  if (isIndo) {
-      languageInstruction += `
-        STYLE: "Bahasa Gaul" (Authentic Indonesian Social Media Slang).
+  if (project.brandCopyExamples && project.brandCopyExamples.length > 10) {
+      // FEW-SHOT MODE (HIGH QUALITY)
+      toneInstruction = `
+        **CRITICAL TONE CALIBRATION (MIMIC THIS STYLE EXACTLY):**
+        I have provided examples of the client's winning copy below. 
+        Study the sentence length, slang usage, capitalization, and emotional density.
+        Your output MUST sound like it was written by the same person.
         
-        ANTI-ROBOT RULES:
-        1. HARAM WORDS (Do NOT use): "Sobat", "Kawan", "Halo", "Apakah", "Solusi", "Dapatkan", "Nikmati".
-        2. USE: "Sumpah", "Jujurly", "Gak ngotak", "Nangis banget", "Life saver", "Auto", "Valid", "Kan", "Deh".
-        3. PRONOUNS: Use "Aku/Kamu" (Soft) or "Gue/Lo" (Edgy). Never "Anda".
-        4. TONE: Like a best friend gossiping or ranting. Not a salesperson.
-        5. SENTENCE STRUCTURE: Start directly with the hook. "Jujur, ...", "Sumpah ya...".
+        === CLIENT EXAMPLES START ===
+        ${project.brandCopyExamples}
+        === CLIENT EXAMPLES END ===
+        
+        Do NOT revert to generic AI defaults. Use the examples above as your "Style Source of Truth".
       `;
   } else {
-      languageInstruction += `If Brazil -> Use Portuguese with emotional flair. If USA -> Direct Response English.`;
+      // ZERO-SHOT FALLBACK (LOWER QUALITY)
+      if (isIndo) {
+          toneInstruction = `
+            STYLE: "Bahasa Gaul" (Authentic Indonesian Social Media Slang).
+            ANTI-ROBOT RULES:
+            1. HARAM WORDS (Do NOT use): "Sobat", "Kawan", "Halo", "Apakah", "Solusi".
+            2. USE PARTICLES: "sih", "dong", "deh", "kan", "banget", "malah", "kok".
+            3. PRONOUNS: Use "Aku/Kamu" (Soft) or "Gue/Lo" (Edgy). Never "Anda".
+            4. TONE: Like a best friend gossiping or ranting.
+          `;
+      } else {
+          toneInstruction = `STYLE: Conversational, Authentic, Native Speaker level.`;
+      }
   }
 
   // SYSTEM: HEADLINE CONTEXT LIBRARY (THE STATIC AD RULES)
@@ -124,19 +134,14 @@ export const generateAdCopy = async (
     # Role: Senior Direct Response Copywriter (Static Ad Specialist)
 
     **MANDATORY INSTRUCTION:**
-    ${languageInstruction}
+    ${toneInstruction}
+    TARGET COUNTRY: ${country}.
 
     **THE HEADLINE CONTEXT LIBRARY (RULES):**
-    1.  **Assume No One Knows You:** Treat the audience as COLD. Do not be vague. "I feel new" (BAD) vs "Bye-Bye Bloating" (GOOD).
-    2.  **Clear > Clever:** Clarity drives conversions. No puns. No jargon. If they have to think, you lose.
-    3.  **The "So That" Test (Transformation > Feature):** 
-        *   Feature: "1000mAh Battery" (Boring).
-        *   Transformation: "Listen to music for 48 hours straight" (Winner).
-        *   *Rule:* Sell the AFTER state.
+    1.  **Assume No One Knows You:** Treat the audience as COLD. Do not be vague.
+    2.  **Clear > Clever:** Clarity drives conversions.
+    3.  **The "So That" Test:** Sell the AFTER state.
     4.  **Call Out the Audience/Pain:** Flag down the user immediately.
-        *   "For Busy Moms..."
-        *   "Knee Pain keeping you up?"
-        *   "The last backpack a Digital Nomad will need."
     5.  **Scannability:** Under 7 words. High contrast thought.
     6.  **Visual Hierarchy:** The headline MUST match the image scene described below.
 

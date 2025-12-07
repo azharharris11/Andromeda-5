@@ -51,9 +51,8 @@ export const generateCreativeImage = async (
   
   const ugcEnhancers = "Shot on iPhone 15, raw photo, realistic skin texture, authentic amateur photography, slightly messy background, no bokeh, everything in focus (deep depth of field).";
 
-  // NEW: TRASH TIER FOR "UGLY ADS"
-  // Forces the AI to degrade quality for authenticity
-  const trashTierEnhancers = "Low quality image, 240p resolution, harsh overhead fluorescent lighting, dirty camera lens, slightly blurry, bad composition, messy room in background, jpeg artifacts, overexposed flash, amateur snapshot from 2015 android phone. NO cinematic lighting. NO bokeh. Look cheap and authentic.";
+  // NEW: TRASH TIER FOR "UGLY ADS" - SABRI SUBY "NATIVE CONTENT" UPGRADE
+  const trashTierEnhancers = "Low fidelity, authentic UGC. Shot on iPhone. Slight motion blur allowed. Bad lighting (overhead fluorescent or direct flash). Looks like a photo sent to a group chat. NO professional composition. The goal is 'Pattern Interrupt' - it must NOT look like an ad.";
 
   let finalPrompt = "";
   let appliedEnhancer = professionalEnhancers; 
@@ -76,7 +75,8 @@ export const generateCreativeImage = async (
     format === CreativeFormat.TWITTER_REPOST ||
     format === CreativeFormat.SOCIAL_COMMENT_STACK ||
     format === CreativeFormat.HANDHELD_TWEET ||
-    format === CreativeFormat.STORY_POLL;
+    format === CreativeFormat.STORY_POLL ||
+    format === CreativeFormat.EDUCATIONAL_RANT; // Added here for UGC base
 
   // === LOGIC BRANCHING ===
 
@@ -94,31 +94,36 @@ export const generateCreativeImage = async (
   else if (isNativeStory) {
       appliedEnhancer = ugcEnhancers; 
 
-      // 1. Determine "Candid Environment"
-      const randomEnv = Math.random();
-      let environment = "inside a modern car during daytime, sunlight hitting face (car selfie vibe)";
-      if (randomEnv > 0.6) environment = "leaning against a window with natural light, contemplative mood";
-      if (randomEnv > 0.85) environment = "mirror selfie in a clean, modern aesthetic room";
-
-      // 2. Determine "UI Overlay Style"
-      let uiOverlay = "";
-      if (format === CreativeFormat.STORY_QNA) {
-          uiOverlay = `Overlay: A standard Instagram 'Question Box' sticker (white rectangle with rounded corners) floating near the head. The text in the box asks: "${angle}?". There is a typed response below it.`;
-      } else if (format === CreativeFormat.LONG_TEXT || format === CreativeFormat.STORY_POLL) {
-          uiOverlay = `Overlay: A large, massive block of text (long copy) covering the center of the image. It looks like a long Instagram story caption. The text is white with a translucent black background for readability.`;
-      } else if (format === CreativeFormat.HANDHELD_TWEET || format === CreativeFormat.TWITTER_REPOST) {
-           uiOverlay = `Overlay: A social media post screenshot (Twitter/X style) superimposed on the image. The text on the post is sharp and reads: "${angle}".`;
-      } else if (format === CreativeFormat.PHONE_NOTES) {
-           uiOverlay = `A full screen screenshot of the Apple Notes App. Title: "${angle}". Below is a typed list related to ${project.productName}.`;
-           environment = ""; 
-      } else if (format === CreativeFormat.UGC_MIRROR) {
-          uiOverlay = `Overlay: Several 'Instagram Text Bubbles' floating around the subject. Text in bubbles: "${angle}".`;
-      }
-
-      if (environment) {
-          finalPrompt = `A vertical, authentic UGC photo of a person ${environment}. ${uiOverlay} ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}. Make it look like a real Instagram Story.`;
+      if (format === CreativeFormat.EDUCATIONAL_RANT) {
+          // Green Screen Logic
+          finalPrompt = `A person engaging with the camera, 'Green Screen' effect style. Background is a screenshot of a news article or a graph related to ${angle}. The person looks passionate/angry (ranting). Native TikTok/Reels aesthetic. UI overlay: "Stop doing this!". ${ugcEnhancers} ${culturePrompt} ${SAFETY_GUIDELINES}`;
       } else {
-          finalPrompt = `${uiOverlay} ${appliedEnhancer} ${SAFETY_GUIDELINES}. Photorealistic UI render.`;
+        // 1. Determine "Candid Environment"
+        const randomEnv = Math.random();
+        let environment = "inside a modern car during daytime, sunlight hitting face (car selfie vibe)";
+        if (randomEnv > 0.6) environment = "leaning against a window with natural light, contemplative mood";
+        if (randomEnv > 0.85) environment = "mirror selfie in a clean, modern aesthetic room";
+
+        // 2. Determine "UI Overlay Style"
+        let uiOverlay = "";
+        if (format === CreativeFormat.STORY_QNA) {
+            uiOverlay = `Overlay: A standard Instagram 'Question Box' sticker (white rectangle with rounded corners) floating near the head. The text in the box asks: "${angle}?". There is a typed response below it.`;
+        } else if (format === CreativeFormat.LONG_TEXT || format === CreativeFormat.STORY_POLL) {
+            uiOverlay = `Overlay: A large, massive block of text (long copy) covering the center of the image. It looks like a long Instagram story caption. The text is white with a translucent black background for readability.`;
+        } else if (format === CreativeFormat.HANDHELD_TWEET || format === CreativeFormat.TWITTER_REPOST) {
+            uiOverlay = `Overlay: A social media post screenshot (Twitter/X style) superimposed on the image. The text on the post is sharp and reads: "${angle}".`;
+        } else if (format === CreativeFormat.PHONE_NOTES) {
+            uiOverlay = `A full screen screenshot of the Apple Notes App. Title: "${angle}". Below is a typed list related to ${project.productName}.`;
+            environment = ""; 
+        } else if (format === CreativeFormat.UGC_MIRROR) {
+            uiOverlay = `Overlay: Several 'Instagram Text Bubbles' floating around the subject. Text in bubbles: "${angle}".`;
+        }
+
+        if (environment) {
+            finalPrompt = `A vertical, authentic UGC photo of a person ${environment}. ${uiOverlay} ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}. Make it look like a real Instagram Story.`;
+        } else {
+            finalPrompt = `${uiOverlay} ${appliedEnhancer} ${SAFETY_GUIDELINES}. Photorealistic UI render.`;
+        }
       }
   }
   // === OTHER FORMATS ===

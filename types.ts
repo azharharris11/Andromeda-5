@@ -1,5 +1,4 @@
 
-
 export enum NodeType {
   ROOT = 'ROOT',
   PERSONA = 'PERSONA',
@@ -15,72 +14,67 @@ export enum NodeType {
 }
 
 export enum CreativeFormat {
-  // --- CAROUSEL SPECIALS (NEW) ---
-  CAROUSEL_EDUCATIONAL = 'Carousel: Educational / Tips',
-  CAROUSEL_TESTIMONIAL = 'Carousel: Testimonial Pile',
-  CAROUSEL_PANORAMA = 'Carousel: Seamless Panorama',
-  CAROUSEL_PHOTO_DUMP = 'Carousel: Photo Dump / Recap',
-  CAROUSEL_REAL_STORY = 'Carousel: Real People Story (UGC)', // NEW
+  // --- CAROUSEL SPECIALS ---
+  CAROUSEL_EDUCATIONAL = 'Educational Carousel',
+  CAROUSEL_TESTIMONIAL = 'Testimonial Pile',
+  CAROUSEL_PANORAMA = 'Seamless Panorama',
+  CAROUSEL_PHOTO_DUMP = 'Photo Dump',
+  CAROUSEL_REAL_STORY = 'Real Story (UGC)',
 
-  // Previous Performers
-  BIG_FONT = 'Big Font / Text Heavy',
-  GMAIL_UX = 'Gmail / Letter Style',
-  BILLBOARD = 'Billboard Ad',
-  UGLY_VISUAL = 'Ugly Visual / Problem Focus',
-  MS_PAINT = 'MS Paint / Nostalgia',
+  // --- PATTERN INTERRUPT ---
+  BIG_FONT = 'Big Font Text',
+  GMAIL_UX = 'Gmail Interface',
+  BILLBOARD = 'Billboard',
+  UGLY_VISUAL = 'Ugly Visual',
+  MS_PAINT = 'MS Paint',
   REDDIT_THREAD = 'Reddit Thread',
-  MEME = 'Meme / Internet Culture',
-  LONG_TEXT = 'Long Text / Story',
-  CARTOON = 'Cartoon / Illustration',
+  MEME = 'Meme',
+  LONG_TEXT = 'Long Text Story',
+  CARTOON = 'Cartoon',
   BEFORE_AFTER = 'Before & After',
-  WHITEBOARD = 'Whiteboard / Diagram',
+  WHITEBOARD = 'Whiteboard',
+  EDUCATIONAL_RANT = 'Green Screen Rant',
 
-  // Instagram Native
-  TWITTER_REPOST = 'Twitter/X Repost',
-  PHONE_NOTES = 'iPhone Notes App',
-  AESTHETIC_MINIMAL = 'Aesthetic / Text Overlay',
-  STORY_POLL = 'Story: Standard Poll (Yes/No)',
-  STORY_QNA = 'Story: Ask Me Anything (Influencer Style)', 
-  REELS_THUMBNAIL = 'Reels Cover / Fake Video',
+  // --- NATIVE / SOCIAL ---
+  TWITTER_REPOST = 'Twitter Repost',
+  PHONE_NOTES = 'iPhone Notes',
+  AESTHETIC_MINIMAL = 'Aesthetic Minimal',
+  STORY_POLL = 'Story Poll',
+  STORY_QNA = 'Story Q&A', 
+  REELS_THUMBNAIL = 'Reels Cover',
   DM_NOTIFICATION = 'DM Notification',
   UGC_MIRROR = 'UGC Mirror Selfie',
-
-  // New: Logical & Comparison
-  US_VS_THEM = 'Us vs Them / Comparison Table',
-  GRAPH_CHART = 'Graph / Data Visualization',
-  TIMELINE_JOURNEY = 'Timeline / Roadmap',
-
-  // New: Voyeurism & Social
-  CHAT_CONVERSATION = 'Chat Bubble / WhatsApp',
+  HANDHELD_TWEET = 'Handheld Tweet',     
+  SOCIAL_COMMENT_STACK = 'Comment Stack', 
+  CHAT_CONVERSATION = 'Chat Conversation',
   REMINDER_NOTIF = 'Lockscreen Reminder',
-  SOCIAL_COMMENT_STACK = 'Social Comment Stack', 
-  HANDHELD_TWEET = 'Handheld Tweet Overlay',     
 
-  // New: Product Centric
-  POV_HANDS = 'POV / Hands-on',
-  ANNOTATED_PRODUCT = 'Annotated / Feature Breakdown',
-  SEARCH_BAR = 'Search Bar UI',
-  BENEFIT_POINTERS = 'Benefit Pointers / Anatomy', 
+  // --- LOGIC / CONVERSION ---
+  US_VS_THEM = 'Us vs Them',
+  GRAPH_CHART = 'Data Visual',
+  TIMELINE_JOURNEY = 'Timeline',
+  BENEFIT_POINTERS = 'Benefit Anatomy', 
+  STICKY_NOTE_REALISM = 'Sticky Note',
+  SEARCH_BAR = 'Search Bar',
+  ANNOTATED_PRODUCT = 'Annotated Product',
+  POV_HANDS = 'POV Hands-on',
 
-  // New: Aesthetic & Mood
-  COLLAGE_SCRAPBOOK = 'Collage / Scrapbook',
-  CHECKLIST_TODO = 'Checklist / To-Do',
-  STICKY_NOTE_REALISM = 'Sticky Note / Handwritten' 
+  // --- AESTHETIC ---
+  COLLAGE_SCRAPBOOK = 'Scrapbook Collage',
+  CHECKLIST_TODO = 'Checklist'
 }
 
 export enum CampaignStage {
-  TESTING = 'TESTING', // CBO - High Volume Bid Strategy
-  SCALING = 'SCALING'  // Advantage+ / Broad - Cost Cap/ROAS Goal
+  TESTING = 'TESTING', 
+  SCALING = 'SCALING' 
 }
 
-// NEW: Marketing Funnel Stages
 export enum FunnelStage {
   TOF = 'Top of Funnel (Cold Awareness)',
   MOF = 'Middle of Funnel (Consideration)',
   BOF = 'Bottom of Funnel (Retargeting/Conversion)'
 }
 
-// NEW: Eugene Schwartz Market Awareness Levels
 export enum MarketAwareness {
   UNAWARE = 'Unaware (No knowledge of problem)',
   PROBLEM_AWARE = 'Problem Aware (Knows problem, seeks solution)',
@@ -89,7 +83,6 @@ export enum MarketAwareness {
   MOST_AWARE = 'Most Aware (Ready to buy, needs urgency)'
 }
 
-// NEW: Direct Response Frameworks
 export enum CopyFramework {
   PAS = 'PAS (Problem, Agitation, Solution)',
   AIDA = 'AIDA (Attention, Interest, Desire, Action)',
@@ -98,32 +91,22 @@ export enum CopyFramework {
   STORY = 'Storytelling / Hero\'s Journey'
 }
 
-// ANDROMEDA PLAYBOOK: Testing Tiers
 export enum TestingTier {
   TIER_1 = 'TIER 1: Concept Isolation (High Budget)',
   TIER_2 = 'TIER 2: Persona Isolation (Mid Budget)',
   TIER_3 = 'TIER 3: Sprint Isolation (Low Budget)'
 }
 
-// ANDROMEDA PLAYBOOK: Analysis Phases
-export enum AnalysisPhase {
-  PHASE_1 = 'PHASE 1: Launch & Learning (0-72h)',
-  PHASE_2 = 'PHASE 2: Health Check (Day 4-7)',
-  PHASE_3 = 'PHASE 3: Performance Eval (Day 8-14)',
-  PHASE_4 = 'PHASE 4: Scaling Decision (Day 15+)'
-}
-
 export type ViewMode = 'LAB' | 'VAULT';
 
-export interface Metrics {
-  ageHours: number; // NEW: Track age of ad for Phased Analysis
-  spend: number;
-  cpa: number;
-  roas: number;
-  impressions: number;
-  ctr: number; // Thumbstop rate
-  thumbstopRatio?: number; // 3-second view rate
-  holdRate?: number; // Video retention
+// UPDATED: Prediction Score instead of Fake Metrics
+export interface PredictionMetrics {
+  score: number; // 0-100
+  hookStrength: 'Weak' | 'Moderate' | 'Strong' | 'Viral';
+  clarity: 'Confusing' | 'Clear' | 'Crystal Clear';
+  emotionalResonance: 'Flat' | 'Engaging' | 'Visceral';
+  reasoning: string; // Why did AI give this score?
+  sabriAudit?: string; // NEW: The 4 U's audit text
 }
 
 export interface AdCopy {
@@ -133,26 +116,25 @@ export interface AdCopy {
   complianceNotes?: string; 
 }
 
-// --- STORY LEAD MEGAPROMPT DATA STRUCTURES ---
 export interface StoryOption {
   id: string;
   title: string;
-  narrative: string; // The raw "Reddit" story
-  emotionalTheme: string; // "Betrayal", "Hope", etc.
+  narrative: string; 
+  emotionalTheme: string; 
 }
 
 export interface BigIdeaOption {
   id: string;
   headline: string;
-  concept: string; // The "New Opportunity" pitch
-  targetBelief: string; // What belief are we shifting?
+  concept: string; 
+  targetBelief: string; 
 }
 
 export interface MechanismOption {
   id: string;
-  ump: string; // Unique Mechanism of Problem (Why they failed before)
-  ums: string; // Unique Mechanism of Solution (Why this works now)
-  scientificPseudo: string; // The "Name" of the mechanism
+  ump: string; 
+  ums: string; 
+  scientificPseudo: string; 
 }
 
 export interface NodeData {
@@ -160,12 +142,10 @@ export interface NodeData {
   type: NodeType;
   parentId?: string | null;
   
-  // Content
   title: string;
   description?: string;
   meta?: Record<string, any>;
   
-  // Story Lead Workflow Data - Single Items for Mindmap Nodes
   storyData?: StoryOption;
   bigIdeaData?: BigIdeaOption;
   mechanismData?: MechanismOption;
@@ -173,41 +153,38 @@ export interface NodeData {
   
   // Creative specific
   imageUrl?: string; 
+  videoUrl?: string; // NEW: Google Veo Output
   carouselImages?: string[]; 
   format?: CreativeFormat;
   adCopy?: AdCopy; 
-  fullSalesLetter?: string; // For SALES_LETTER node
+  fullSalesLetter?: string; 
   
-  // Audio / Scripting 
   audioScript?: string;
   audioBase64?: string; 
   
-  // State
   isLoading?: boolean;
   stage?: CampaignStage; 
   isGhost?: boolean; 
   
-  // Performance Data (The Andromeda Metric System)
-  metrics?: Metrics;
-  analysisPhase?: AnalysisPhase; // NEW
-  postId?: string; 
-  isWinning?: boolean; 
-  isLosing?: boolean;
-  aiInsight?: string; 
+  // NEW: Qualitative Prediction instead of Simulation
+  prediction?: PredictionMetrics;
   
   // Andromeda Logic
-  testingTier?: TestingTier; // NEW
-  variableIsolated?: string; // NEW (e.g., "Variable: Hook")
-  congruenceRationale?: string; // NEW: Why Image matches Text (The Jeans Rule)
+  testingTier?: TestingTier; 
+  variableIsolated?: string; 
+  congruenceRationale?: string; 
   
-  // Usage & Cost Tracking 
   inputTokens?: number;
   outputTokens?: number;
   estimatedCost?: number;
 
-  // Layout
   x: number;
   y: number;
+  
+  // Added properties to fix errors
+  isWinning?: boolean;
+  postId?: string;
+  aiInsight?: string;
 }
 
 export interface Edge {
@@ -223,31 +200,30 @@ export interface ProjectContext {
   landingPageUrl?: string; 
   productReferenceImage?: string; 
   
-  // New Strategic Inputs
   targetCountry?: string; 
   brandVoice?: string;
-  brandVoiceOptions?: string[]; // NEW: AI generated options
-  funnelStage?: FunnelStage;
+  brandVoiceOptions?: string[]; 
   
-  // NEW: Deep Strategy Inputs
+  // NEW: Calibration Data for Few-Shot Prompting
+  brandCopyExamples?: string; 
+
+  funnelStage?: FunnelStage;
   offer?: string;
-  offerOptions?: string[]; // NEW: AI generated options
+  offerOptions?: string[]; 
   marketAwareness?: MarketAwareness;
   copyFramework?: CopyFramework;
 }
 
-// Internal Interface for the "Strategist Agent"
 export interface CreativeConcept {
   visualScene: string;   
   visualStyle: string;   
   technicalPrompt: string; 
   copyAngle: string;     
   rationale: string;
-  congruenceRationale: string; // NEW: The "Why they match"
-  // Modular Toolkit Components
-  hookComponent?: string; // The "Thumbstop"
-  bodyComponent?: string; // The "Reasoning"
-  ctaComponent?: string; // The "Action"
+  congruenceRationale: string; 
+  hookComponent?: string; 
+  bodyComponent?: string; 
+  ctaComponent?: string; 
 }
 
 export interface GenResult<T> {

@@ -3,6 +3,32 @@ import { Type } from "@google/genai";
 import { ProjectContext, GenResult, StoryOption, BigIdeaOption, MechanismOption } from "../../types";
 import { ai, extractJSON } from "./client";
 
+export const auditHeadlineSabri = async (headline: string, audience: string): Promise<string> => {
+  const model = "gemini-2.5-flash";
+  const prompt = `
+    Role: Sabri Suby (Ruthless Copy Editor).
+    
+    Task: Rate this headline based on the 4 U's:
+    1. Urgent (Why now?)
+    2. Unique (Have I heard this before?)
+    3. Ultra-Specific (Does it use numbers/names?)
+    4. Useful (What's in it for me?)
+    
+    Headline: "${headline}"
+    Target Audience: ${audience}
+    
+    Output: A short, harsh critique (max 2 sentences) and a Score /10. 
+    If score < 7, rewrite it to be better.
+  `;
+  
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt
+  });
+  
+  return response.text || "Audit failed.";
+};
+
 export const generateBigIdeas = async (project: ProjectContext, story: StoryOption): Promise<GenResult<BigIdeaOption[]>> => {
   const model = "gemini-2.5-flash";
   const prompt = `

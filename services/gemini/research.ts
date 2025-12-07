@@ -57,6 +57,53 @@ export const generateStoryResearch = async (project: ProjectContext): Promise<Ge
   };
 };
 
+export const analyzeVoiceOfCustomer = async (rawText: string, project: ProjectContext): Promise<GenResult<any>> => {
+  const model = "gemini-2.5-flash";
+  
+  const prompt = `
+    ROLE: Direct Response Researcher (Sabri Suby Style).
+    
+    CONTEXT:
+    We are analyzing raw market feedback for: ${project.productName}.
+    
+    RAW DATA:
+    "${rawText.substring(0, 50000)}" 
+    
+    TASK:
+    Extract the "Bleeding Neck" pain points VERBATIM (Word-for-Word).
+    Sabri Suby Rule: "Do not change the way the market speaks. Use their exact vocabulary."
+    
+    OUTPUT JSON:
+    1. verbatimHooks: 5 raw, emotional quotes from the text that would stop a scroll.
+    2. coliseumKeywords: The top 3-5 specific keywords/slang used by this tribe.
+    3. recurringComplaints: Patterns of pain found in the text.
+    4. dreamState: Exact phrases describing what they wish they had.
+  `;
+
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          verbatimHooks: { type: Type.ARRAY, items: { type: Type.STRING } },
+          coliseumKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+          recurringComplaints: { type: Type.ARRAY, items: { type: Type.STRING } },
+          dreamState: { type: Type.ARRAY, items: { type: Type.STRING } }
+        }
+      }
+    }
+  });
+
+  return {
+    data: extractJSON(response.text || "{}"),
+    inputTokens: response.usageMetadata?.promptTokenCount || 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount || 0
+  };
+};
+
 export const analyzeLandingPageContext = async (markdown: string): Promise<ProjectContext> => {
   const model = "gemini-2.5-flash";
   

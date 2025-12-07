@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Globe, ImageIcon, Upload, X, Target, ChevronDown } from 'lucide-react';
+import { Globe, ImageIcon, Upload, X, Target, ChevronDown, MessageSquare } from 'lucide-react';
 import { ProjectContext, MarketAwareness, FunnelStage, CopyFramework } from '../types';
 import { analyzeImageContext, analyzeLandingPageContext } from '../services/geminiService';
 import { scrapeLandingPage } from '../services/firecrawlService';
@@ -215,6 +215,17 @@ const ConfigModal: React.FC<ConfigModalProps> = ({ isOpen, onClose, project, onU
                             options={project.offerOptions || []} 
                             placeholder="e.g. 50% Off" 
                         />
+                    </div>
+                    <div className="col-span-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase mb-1 block flex items-center gap-2"><MessageSquare className="w-3.5 h-3.5" /> Tone Calibration (Few-Shot Examples)</label>
+                        <textarea 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs focus:ring-2 focus:ring-blue-100 outline-none font-mono text-slate-600" 
+                            rows={3} 
+                            value={project.brandCopyExamples || ''} 
+                            onChange={e => onUpdateProject({ brandCopyExamples: e.target.value })}
+                            placeholder="Paste 1-3 examples of your best performing ads here. The AI will mimic this exact style." 
+                        />
+                        <p className="text-[10px] text-slate-400 mt-1"><b>Pro Tip:</b> Paste your "Winning Ads" here to prevent the AI from sounding robotic.</p>
                     </div>
                     <div className="col-span-2 grid grid-cols-2 gap-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
                         <div>

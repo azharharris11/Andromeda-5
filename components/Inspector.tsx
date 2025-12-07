@@ -1,8 +1,8 @@
 
 import React, { useState, useRef } from 'react';
-import { NodeData, AdCopy, ProjectContext, CampaignStage, AnalysisPhase } from '../types';
-import { X, ThumbsUp, MessageCircle, Share2, Globe, MoreHorizontal, Download, Smartphone, Layout, Sparkles, BrainCircuit, Mic, Play, Pause, Wand2, ChevronLeft, ChevronRight, Layers, RefreshCw, Archive, Clock, ShieldAlert, BarChart3, AlertTriangle, Activity, CheckCircle2 } from 'lucide-react';
-import { generateAdScript, generateVoiceover } from '../services/geminiService';
+import { NodeData, AdCopy, ProjectContext, CampaignStage } from '../types';
+import { X, ThumbsUp, MessageCircle, Share2, Globe, MoreHorizontal, Download, Smartphone, Layout, Sparkles, BrainCircuit, Mic, Play, Pause, Wand2, ChevronLeft, ChevronRight, Layers, RefreshCw, Archive, Clock, ShieldAlert, BarChart3, AlertTriangle, Activity, CheckCircle2, Video, Film, Loader2 } from 'lucide-react';
+import { generateAdScript, generateVoiceover, generateVeoVideo, auditHeadlineSabri } from '../services/geminiService';
 
 interface InspectorProps {
   node: NodeData;
@@ -29,11 +29,13 @@ const decodeAudioData = async (base64: string, ctx: AudioContext): Promise<Audio
 };
 
 const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdate, onRegenerate, onPromote, project }) => {
-  const { adCopy, imageUrl, carouselImages, title, format, postId, aiInsight, audioScript, audioBase64, stage, analysisPhase, metrics, testingTier, variableIsolated, congruenceRationale } = node;
-  const [activeTab, setActiveTab] = useState<'PREVIEW' | 'INSIGHTS' | 'AUDIO'>('PREVIEW');
+  const { adCopy, imageUrl, carouselImages, title, format, postId, aiInsight, audioScript, audioBase64, stage, prediction, testingTier, variableIsolated, congruenceRationale, videoUrl } = node;
+  const [activeTab, setActiveTab] = useState<'PREVIEW' | 'INSIGHTS' | 'AUDIO' | 'VIDEO'>('PREVIEW');
   const [aspectRatio, setAspectRatio] = useState<'SQUARE' | 'VERTICAL'>('SQUARE');
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [isAuditingHeadline, setIsAuditingHeadline] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0); 
   
@@ -70,6 +72,37 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
     setIsGeneratingAudio(false);
   };
 
+  const handleGenerateVideo = async () => {
+    if (!onUpdate || !project) return;
+    // Check if user has key
+    const hasKey = await window.aistudio?.hasSelectedApiKey();
+    if (!hasKey) {
+        await window.aistudio?.openSelectKey();
+        return;
+    }
+    
+    setIsGeneratingVideo(true);
+    // Use Veo model
+    const prompt = `Cinematic video for ${project.productName}. ${node.title}. ${node.description || 'High quality advertising shot.'}`;
+    const result = await generateVeoVideo(project, imageUrl, prompt);
+    
+    if (result.data) {
+        onUpdate(node.id, { videoUrl: result.data });
+        setActiveTab('VIDEO');
+    }
+    setIsGeneratingVideo(false);
+  };
+  
+  const handleSabriAudit = async () => {
+      if (!onUpdate || !adCopy?.headline || !project) return;
+      setIsAuditingHeadline(true);
+      const audit = await auditHeadlineSabri(adCopy.headline, project.targetAudience);
+      const updatedPrediction = prediction ? { ...prediction, sabriAudit: audit } : { score: 0, hookStrength: 'Moderate', clarity: 'Clear', emotionalResonance: 'Flat', reasoning: 'Pending', sabriAudit: audit };
+      
+      onUpdate(node.id, { prediction: updatedPrediction as any });
+      setIsAuditingHeadline(false);
+  };
+
   const handlePlayAudio = async () => {
     if (!audioBase64) return;
     if (isPlaying) { sourceRef.current?.stop(); setIsPlaying(false); return; }
@@ -94,6 +127,10 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
   };
 
   const handleDownload = () => {
+      if (videoUrl) {
+          window.open(videoUrl, '_blank');
+          return;
+      }
       if (!imageUrl) return;
       const link = document.createElement('a');
       link.href = imageUrl;
@@ -105,14 +142,6 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
 
   const handlePromote = () => {
       if (onPromote) onPromote(node.id);
-  };
-
-  const getPhaseColor = (p?: AnalysisPhase) => {
-      if (p === AnalysisPhase.PHASE_1) return 'text-slate-500 bg-slate-100 border-slate-200';
-      if (p === AnalysisPhase.PHASE_2) return 'text-blue-600 bg-blue-50 border-blue-200';
-      if (p === AnalysisPhase.PHASE_3) return 'text-purple-600 bg-purple-50 border-purple-200';
-      if (p === AnalysisPhase.PHASE_4) return 'text-emerald-600 bg-emerald-50 border-emerald-200';
-      return 'text-slate-500 bg-slate-100';
   };
 
   return (
@@ -134,8 +163,9 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
 
       <div className="flex p-1 mx-4 mt-4 bg-slate-100 rounded-lg">
         <button onClick={() => setActiveTab('PREVIEW')} className={`flex-1 py-1.5 text-xs font-bold rounded-md flex items-center justify-center gap-2 transition-all ${activeTab === 'PREVIEW' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}><Smartphone className="w-3.5 h-3.5" /> Preview</button>
+        <button onClick={() => setActiveTab('VIDEO')} className={`flex-1 py-1.5 text-xs font-bold rounded-md flex items-center justify-center gap-2 transition-all ${activeTab === 'VIDEO' ? 'bg-white shadow text-purple-600' : 'text-slate-500 hover:text-slate-700'}`}><Video className="w-3.5 h-3.5" /> Veo</button>
         <button onClick={() => setActiveTab('AUDIO')} className={`flex-1 py-1.5 text-xs font-bold rounded-md flex items-center justify-center gap-2 transition-all ${activeTab === 'AUDIO' ? 'bg-white shadow text-pink-600' : 'text-slate-500 hover:text-slate-700'}`}><Mic className="w-3.5 h-3.5" /> Audio</button>
-        <button onClick={() => setActiveTab('INSIGHTS')} className={`flex-1 py-1.5 text-xs font-bold rounded-md flex items-center justify-center gap-2 transition-all ${activeTab === 'INSIGHTS' ? 'bg-white shadow text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}><BrainCircuit className="w-3.5 h-3.5" /> Analysis</button>
+        <button onClick={() => setActiveTab('INSIGHTS')} className={`flex-1 py-1.5 text-xs font-bold rounded-md flex items-center justify-center gap-2 transition-all ${activeTab === 'INSIGHTS' ? 'bg-white shadow text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}><Activity className="w-3.5 h-3.5" /> Audit</button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
@@ -221,6 +251,29 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
             </>
         )}
 
+        {activeTab === 'VIDEO' && (
+            <div className="space-y-6">
+                <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
+                    <h3 className="text-sm font-bold text-purple-900 mb-2 flex items-center gap-2"><Video className="w-4 h-4" /> Google Veo Video Generator</h3>
+                    <p className="text-xs text-purple-800/80 mb-4">Transform this static asset into a cinematic video using Google's Veo model. (Requires Paid Key).</p>
+                    
+                    {!videoUrl && (
+                        <button onClick={handleGenerateVideo} disabled={isGeneratingVideo} className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-lg shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] disabled:opacity-50 disabled:scale-100">
+                            {isGeneratingVideo ? <Loader2 className="w-4 h-4 animate-spin"/> : <Film className="w-4 h-4" />}
+                            {isGeneratingVideo ? 'Generating with Veo (This takes time)...' : 'Generate Video'}
+                        </button>
+                    )}
+
+                    {videoUrl && (
+                        <div className="mt-4 rounded-lg overflow-hidden border border-slate-800 shadow-xl relative group">
+                            <video src={videoUrl} controls className="w-full h-auto" autoPlay loop muted />
+                            <div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-white text-[10px] font-bold">Generated by Veo</div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
+
         {activeTab === 'AUDIO' && (
             <div className="space-y-6">
                 <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl">
@@ -235,54 +288,47 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
 
         {activeTab === 'INSIGHTS' && (
             <div className="space-y-6">
-                 {/* ANDROMEDA DASHBOARD */}
-                 {node.metrics ? (
+                 {/* PREDICTION AUDIT (Replaces Simulation) */}
+                 {prediction ? (
                      <>
-                        <div className={`p-4 rounded-xl border ${getPhaseColor(analysisPhase)} shadow-sm`}>
+                        <div className={`p-4 rounded-xl border shadow-sm ${prediction.score > 80 ? 'bg-emerald-50 border-emerald-200' : prediction.score > 60 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
                              <div className="flex items-center justify-between mb-2">
                                 <span className="text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
-                                    <Clock className="w-3 h-3" /> Ad Age: {node.metrics.ageHours} hrs
+                                    <BrainCircuit className="w-3 h-3" /> Creative Audit
                                 </span>
-                                <span className="text-[10px] px-2 py-0.5 bg-white/50 rounded border border-black/5 font-bold">{analysisPhase}</span>
+                                <span className="text-[14px] font-mono font-bold">{prediction.score}/100</span>
                              </div>
                              
-                             {analysisPhase === AnalysisPhase.PHASE_1 && (
-                                 <div className="text-xs font-medium flex items-center gap-2 mt-2">
-                                     <ShieldAlert className="w-4 h-4" />
-                                     <span>Volatility High. Do Not Touch. 72hr Rule Active.</span>
-                                 </div>
-                             )}
-                             {analysisPhase === AnalysisPhase.PHASE_2 && (
-                                 <div className="text-xs font-medium flex items-center gap-2 mt-2">
-                                     <Activity className="w-4 h-4" />
-                                     <span>Health Check Mode. Monitor CTR & CPM.</span>
-                                 </div>
-                             )}
+                             <div className="text-sm font-medium leading-relaxed mt-2 text-slate-800">
+                                 "{prediction.reasoning}"
+                             </div>
+                        </div>
+
+                        {/* SABRI SUBY HEADLINE AUDIT (NEW) */}
+                        <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl">
+                            <h3 className="text-sm font-bold text-orange-900 mb-2 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4" /> Sabri's "4 U's" Audit
+                            </h3>
+                            {prediction.sabriAudit ? (
+                                <p className="text-xs text-orange-900/80 whitespace-pre-wrap">{prediction.sabriAudit}</p>
+                            ) : (
+                                <button onClick={handleSabriAudit} disabled={isAuditingHeadline} className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                    {isAuditingHeadline ? <Loader2 className="w-3 h-3 animate-spin"/> : <CheckCircle2 className="w-3.5 h-3.5" />} Audit Headline (Urgent, Unique, Ultra-Specific, Useful)
+                                </button>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm opacity-60"><span className="text-[10px] uppercase text-slate-400 font-bold">Spend</span><div className="text-2xl font-mono font-bold text-slate-700">${node.metrics.spend}</div></div>
-                            <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm"><span className="text-[10px] uppercase text-slate-400 font-bold">CTR (Thumbstop)</span><div className="text-2xl font-mono font-bold text-blue-500">{node.metrics.ctr.toFixed(2)}%</div></div>
-                            
-                            {/* Hide ROAS/CPA in Phase 1 */}
-                            {analysisPhase !== AnalysisPhase.PHASE_1 ? (
-                                <>
-                                    <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm"><span className="text-[10px] uppercase text-slate-400 font-bold">ROAS</span><div className={`text-2xl font-mono font-bold ${node.metrics.roas > 2 ? 'text-emerald-500' : 'text-slate-700'}`}>{node.metrics.roas.toFixed(2)}x</div></div>
-                                    <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm"><span className="text-[10px] uppercase text-slate-400 font-bold">CPA</span><div className="text-2xl font-mono font-bold text-slate-700">${node.metrics.cpa.toFixed(0)}</div></div>
-                                </>
-                            ) : (
-                                <div className="col-span-2 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-2 text-slate-400 text-xs font-mono">
-                                    <AlertTriangle className="w-4 h-4" /> ROAS HIDDEN DURING LEARNING PHASE
-                                </div>
-                            )}
+                            <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm"><span className="text-[10px] uppercase text-slate-400 font-bold">Hook Strength</span><div className="text-sm font-bold text-slate-700">{prediction.hookStrength}</div></div>
+                            <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm"><span className="text-[10px] uppercase text-slate-400 font-bold">Emotional</span><div className="text-sm font-bold text-slate-700">{prediction.emotionalResonance}</div></div>
                         </div>
                      </>
-                 ) : (<div className="p-4 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-xs">No performance data available yet. Run a simulation first.</div>)}
+                 ) : (<div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-slate-500 text-xs text-center">Run an Audit to get a Prediction Score.</div>)}
                  
                  {/* STRATEGIC ANALYSIS */}
                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-indigo-600" /><h3 className="text-sm font-bold text-indigo-900">Strategic Analysis</h3></div>
+                        <div className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-indigo-600" /><h3 className="text-sm font-bold text-indigo-900">Strategic Alignment</h3></div>
                         {testingTier && <span className="text-[9px] bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded font-bold">{testingTier}</span>}
                      </div>
                      
@@ -300,7 +346,7 @@ const Inspector: React.FC<InspectorProps> = ({ node, onClose, onAnalyze, onUpdat
                          </div>
                      )}
 
-                     {aiInsight ? (<p className="text-sm text-indigo-800 leading-relaxed">{aiInsight}</p>) : (<div className="text-center py-6"><p className="text-xs text-indigo-400 mb-3">Unlock AI insights for this creative.</p><button onClick={() => onAnalyze && onAnalyze(node.id)} disabled={!node.metrics} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Generate Analysis</button></div>)}
+                     <div className="text-center py-2"><button onClick={() => onAnalyze && onAnalyze(node.id)} disabled={!!prediction} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Run Prediction Audit</button></div>
                  </div>
             </div>
         )}
