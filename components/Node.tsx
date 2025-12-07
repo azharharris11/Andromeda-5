@@ -1,7 +1,8 @@
 
+
 import React from 'react';
 import { NodeData, NodeType, CampaignStage } from '../types';
-import { User, Zap, Image as ImageIcon, Target, Award, RefreshCw, Sparkles, TrendingUp, DollarSign, MousePointer2, Ghost, Mic, Layers, Cpu, Archive, Search, Lightbulb, PenTool, BookOpen, ArrowRight, MessageCircle } from 'lucide-react';
+import { User, Zap, Image as ImageIcon, Target, Award, RefreshCw, Sparkles, TrendingUp, DollarSign, MousePointer2, Ghost, Mic, Layers, Cpu, Archive, Search, Lightbulb, PenTool, BookOpen, ArrowRight, MessageCircle, Activity } from 'lucide-react';
 
 interface NodeProps {
   data: NodeData;
@@ -227,6 +228,18 @@ const Node: React.FC<NodeProps> = ({ data, selected, onClick, onAction, isGridVi
             <p className="mt-2 text-xs text-slate-500 leading-relaxed font-light border-l-2 border-slate-100 pl-2 line-clamp-2">
               {data.description}
             </p>
+          )}
+
+          {/* VISCERAL SYMPTOMS DIAGNOSIS (Persona Node Only) */}
+          {data.type === NodeType.PERSONA && data.meta?.visceralSymptoms && (
+            <div className="mt-2 space-y-1">
+                {data.meta.visceralSymptoms.map((symptom: string, i: number) => (
+                    <div key={i} className="text-[10px] text-slate-600 bg-red-50/50 p-1.5 rounded border border-red-100 flex items-start gap-1.5">
+                        <Activity className="w-3 h-3 text-red-400 shrink-0 mt-0.5" />
+                        <span className="leading-tight">{symptom}</span>
+                    </div>
+                ))}
+            </div>
           )}
         </div>
 

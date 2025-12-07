@@ -370,14 +370,23 @@ export const generatePersonas = async (project: ProjectContext): Promise<GenResu
     
     TASK:
     Define 3 distinct "Avatars" based on their IDENTITY and DEEP PSYCHOLOGICAL NEEDS.
-    Do not just list demographics. List who they *are* vs who they *want to be* (The Gap).
+    
+    THE DIAGNOSIS PRINCIPLE:
+    "If you can articulate someone's problem better than they can, they instinctively believe you can solve it."
+    
+    For each persona, DO NOT just list demographics. 
+    You must generate "Visceral Symptoms" - these are specific micro-moments of pain.
+    Bad: "Has back pain."
+    Good: "The sharp electric jolt they feel in their lower lumbar when they try to put on socks in the morning."
+    Bad: "Worried about money."
+    Good: "Staring at the ceiling at 3:14 AM calculating how many months of rent they have left in savings."
 
     We are looking for:
     1. The Skeptic / Logic Buyer (Identity: "I am smart, I research, I don't get fooled.")
     2. The Status / Aspirer (Identity: "I want to be admired/successful/beautiful.")
     3. The Anxious / Urgent Solver (Identity: "I need safety/certainty/speed.")
 
-    *Cultural nuance mandatory for ${project.targetCountry}. If Indonesia, mention specific local behaviors (e.g., 'Kaum Mendang-Mending', 'Social Climber').*
+    *Cultural nuance mandatory for ${project.targetCountry}.*
   `;
 
   const response = await ai.models.generateContent({
@@ -394,8 +403,13 @@ export const generatePersonas = async (project: ProjectContext): Promise<GenResu
             profile: { type: Type.STRING, description: "Demographics + Identity Statement" },
             motivation: { type: Type.STRING, description: "The 'Gap' between current self and desired self." },
             deepFear: { type: Type.STRING, description: "What are they afraid of losing?" },
+            visceralSymptoms: { 
+              type: Type.ARRAY, 
+              items: { type: Type.STRING }, 
+              description: "3 specific, highly detailed micro-moments of pain or frustration that prove we know their life." 
+            }
           },
-          required: ["name", "profile", "motivation"]
+          required: ["name", "profile", "motivation", "visceralSymptoms"]
         }
       }
     }
