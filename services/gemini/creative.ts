@@ -3,6 +3,43 @@ import { Type } from "@google/genai";
 import { ProjectContext, CreativeFormat, AdCopy, CreativeConcept, GenResult, StoryOption, BigIdeaOption, MechanismOption } from "../../types";
 import { ai, extractJSON } from "./client";
 
+export const generateSalesLetter = async (
+  project: ProjectContext,
+  story: StoryOption,
+  bigIdea: BigIdeaOption,
+  mechanism: MechanismOption,
+  hook: string
+): Promise<GenResult<string>> => {
+  const model = "gemini-2.5-flash";
+  
+  const prompt = `
+    ROLE: Direct Response Copywriter (Long Form / Advertorial Specialist).
+    
+    TASK: Write a high-converting Sales Letter (or long-form Facebook Ad) that connects all the strategic dots.
+    
+    STRATEGY STACK:
+    1. HOOK: "${hook}" (Grab attention).
+    2. STORY: "${story.narrative}" (Emotional Connection/Empathy).
+    3. THE SHIFT (Big Idea): "${bigIdea.headline}" - "${bigIdea.concept}" (Destroys old belief).
+    4. THE SOLUTION (Mechanism): "${mechanism.scientificPseudo}" - "${mechanism.ums}" (The new logic).
+    5. OFFER: ${project.offer} for ${project.productName}.
+    
+    TONE: Persuasive, storytelling-based, logical yet emotional.
+    FORMAT: Markdown. Use bolding for emphasis. Keep paragraphs short (1-2 sentences).
+  `;
+
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt
+  });
+
+  return {
+    data: response.text || "",
+    inputTokens: response.usageMetadata?.promptTokenCount || 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount || 0
+  };
+};
+
 export const generateCreativeConcept = async (
   project: ProjectContext, 
   personaName: string, 
@@ -23,15 +60,16 @@ export const generateCreativeConcept = async (
   }
 
   const prompt = `
-    # Role: Creative Director (Focus: Message & Imagery Congruency)
+    # Role: Creative Director (The Pattern Interrupt Specialist)
 
-    **THE GOLDEN RULE OF CONGRUENCE:**
-    Ads fail when the image matches the *product* but ignores the *message*.
+    **SABRI SUBY'S "ANTI-COMPETITOR" RULE:**
+    1. Imagine the "Standard Boring Ad" for this industry (e.g., smiling stock photos, clean studio lighting).
+    2. THROW IT IN THE TRASH.
+    3. Do the EXACT OPPOSITE. If they go high, we go low (lo-fi). If they are polished, we are raw.
     
     **INPUTS:**
     Product: ${project.productName}
-    Winning Insight (The Message): ${angle}
-    Persona: ${personaName}
+    Winning Insight: ${angle}
     Format: ${format}
     Context: ${project.targetCountry}
     ${awarenessInstruction}
@@ -41,7 +79,7 @@ export const generateCreativeConcept = async (
     *   If 'Ugly Visual' or 'Pattern Interrupt': Describe a chaotic, low-fidelity scene.
     
     **TASK:**
-    Create a concept where the VISUAL **proves** the HEADLINE.
+    Create a concept that VIOLATES the expectations of the feed.
     
     **OUTPUT REQUIREMENTS (JSON):**
 
@@ -185,77 +223,4 @@ export const generateAdCopy = async (
     inputTokens: response.usageMetadata?.promptTokenCount || 0,
     outputTokens: response.usageMetadata?.candidatesTokenCount || 0
   };
-};
-
-export const generateSalesLetter = async (
-    project: ProjectContext, 
-    story: StoryOption, 
-    bigIdea: BigIdeaOption, 
-    mechanism: MechanismOption,
-    hook: string
-): Promise<GenResult<string>> => {
-  const model = "gemini-2.5-flash"; 
-  const country = project.targetCountry || "USA";
-  const isIndo = country.toLowerCase().includes("indonesia");
-  
-  let langInstruction = "";
-  if (isIndo) {
-      langInstruction = `
-        LANGUAGE: Bahasa Indonesia (Authentic "Gaul" / "Jaksel" Style).
-        
-        CRITICAL "ANTI-ROBOT" RULES:
-        1. NO FORMAL GREETINGS: NEVER start with "Halo sobat", "Hai kawan", "Sobat muda". Just start talking.
-        2. NO TEXTBOOK GRAMMAR: 
-           - Don't use "Apakah". Use "Emang..." or just "?"
-           - Don't use "Saya/Anda". Use "Aku/Kamu" or "Gue/Lo".
-           - Don't use "Adalah". Just skip it.
-        3. USE PARTICLES: Wajib pakai kata: "sih", "dong", "deh", "kan", "banget", "malah", "kok", "sumpah".
-        4. EMOTIONAL OPENERS: Start with "Jujur...", "Sumpah...", "Gak nyangka...", "Capek banget...", "Asli...".
-      `;
-  } else {
-      langInstruction = `LANGUAGE: Native language of ${country}. Conversational, Engaging.`;
-  }
-  
-  const prompt = `
-    ROLE: World-Class Social Media Copywriter (Instagram/TikTok/Facebook).
-    TASK: Write a Long-Form Social Media Caption (Micro-Blog Style).
-    
-    TARGET COUNTRY: ${country}.
-    ${langInstruction}
-    
-    STRUCTURE (The 8-Section System adapted for Social):
-    1. HOOK: Start with the Hook: "${hook}".
-    2. STORY: Dive immediately into the story: "${story.title}". (${story.narrative}). Keep it relatable.
-    3. THE STRUGGLE: Why have they failed before? (Agitate pain).
-    4. THE EPIPHANY (UMP): Reveal the "Real Enemy" (UMP: ${mechanism.ump}). It wasn't their fault.
-    5. THE SOLUTION (UMS): Introduce the New Opportunity (${bigIdea.headline}).
-    6. THE PRODUCT: Introduce ${project.productName} naturally as the solution vehicle (${mechanism.ums}).
-    7. THE TRANSFORMATION: Describe the "After" state.
-    8. CTA: ${project.offer}. Ask for a comment or click.
-    
-    TONE: ${project.brandVoice}. Personal, authentic, like a friend sharing a discovery.
-    FORMAT: Plain text ONLY. NO Markdown (No **bold**, no # H1). Use Line Breaks for readability. Use Emojis 🚀 naturally throughout.
-    
-    Do NOT include section headers (like "Section 1: Hook"). Just write the post.
-  `;
-
-  const response = await ai.models.generateContent({
-    model,
-    contents: prompt
-  });
-
-  return {
-    data: response.text || "Generation failed.",
-    inputTokens: response.usageMetadata?.promptTokenCount || 0,
-    outputTokens: response.usageMetadata?.candidatesTokenCount || 0
-  };
-}
-
-export const checkAdCompliance = async (adCopy: AdCopy): Promise<string> => {
-  const model = "gemini-2.5-flash";
-  const response = await ai.models.generateContent({
-    model,
-    contents: `Check this Ad Copy for policy violations. If safe, return "SAFE".\nHeadline: ${adCopy.headline}\nText: ${adCopy.primaryText}`,
-  });
-  return response.text || "SAFE";
 };

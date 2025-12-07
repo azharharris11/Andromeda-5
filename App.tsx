@@ -8,7 +8,7 @@ import Header from './components/Header';
 import ConfigModal from './components/ConfigModal';
 import FormatSelector from './components/FormatSelector';
 import { NodeType, NodeData, Edge, ProjectContext, CreativeFormat, CampaignStage, ViewMode, FunnelStage, MarketAwareness, CopyFramework } from './types';
-import { generatePersonas, generateAngles, generateCreativeImage, generateAdCopy, generateCarouselSlides, generateCreativeConcept, checkAdCompliance, analyzeLandingPageContext, analyzeImageContext, generateStoryResearch, generateBigIdeas, generateMechanisms, generateHooks, generateSalesLetter, predictCreativePerformance } from './services/geminiService';
+import { generatePersonas, generateAngles, generateCreativeImage, generateAdCopy, generateCarouselSlides, generateCreativeConcept, checkAdCompliance, analyzeLandingPageContext, analyzeImageContext, generateStoryResearch, generateBigIdeas, generateMechanisms, generateHooks, generateSalesLetter, predictCreativePerformance, generateHVCOIdeas } from './services/geminiService';
 
 const INITIAL_PROJECT: ProjectContext = {
   productName: "Zenith Focus Gummies",
@@ -30,13 +30,17 @@ const STRATEGIC_GROUPS: Record<string, CreativeFormat[]> = {
     CreativeFormat.MEME,              
     CreativeFormat.UGLY_VISUAL,       
     CreativeFormat.REDDIT_THREAD,     
-    CreativeFormat.TWITTER_REPOST,    
+    CreativeFormat.TWITTER_REPOST, 
+    CreativeFormat.OLD_ME_VS_NEW_ME, // NEW: Visual Storytelling
+    CreativeFormat.PRESS_FEATURE,    // NEW: Authority stops scroll
     CreativeFormat.MS_PAINT,          
     CreativeFormat.HANDHELD_TWEET,
     CreativeFormat.EDUCATIONAL_RANT 
   ],
 
   "🟠 Education & Social Proof (Build Trust)": [
+    CreativeFormat.VENN_DIAGRAM,         // NEW: Quick Logic
+    CreativeFormat.TESTIMONIAL_HIGHLIGHT,// NEW: Skimmable Proof
     CreativeFormat.CAROUSEL_EDUCATIONAL, 
     CreativeFormat.CAROUSEL_REAL_STORY,  
     CreativeFormat.US_VS_THEM,           
@@ -169,7 +173,8 @@ const App = () => {
     if (parentNode.type === NodeType.HOOK_NODE && parentNode.hookData) angleToUse = parentNode.hookData;
     else if (parentNode.type === NodeType.BIG_IDEA_NODE && parentNode.bigIdeaData) angleToUse = parentNode.bigIdeaData.headline;
     else if (parentNode.type === NodeType.MECHANISM_NODE && parentNode.mechanismData) angleToUse = parentNode.mechanismData.scientificPseudo;
-    
+    else if (parentNode.type === NodeType.HVCO_NODE && parentNode.hvcoData) angleToUse = parentNode.hvcoData.title;
+
     const personaToUse = parentNode.meta?.personaName || "Story Protagonist";
     
     formats.forEach((format, index) => {
@@ -203,7 +208,7 @@ const App = () => {
 
         try {
             const isHookSource = parentNode.type === NodeType.HOOK_NODE;
-            const isShortcut = parentNode.type === NodeType.BIG_IDEA_NODE || parentNode.type === NodeType.MECHANISM_NODE || parentNode.type === NodeType.STORY_NODE;
+            const isShortcut = parentNode.type === NodeType.BIG_IDEA_NODE || parentNode.type === NodeType.MECHANISM_NODE || parentNode.type === NodeType.STORY_NODE || parentNode.type === NodeType.HVCO_NODE;
             const fmt = node.format as CreativeFormat;
             
             let accumulatedInput = 0;
@@ -382,6 +387,43 @@ const App = () => {
           });
       } catch (e) { alert("Quota exceeded."); }
       updateNode(nodeId, { isLoading: false });
+    }
+
+    if (action === 'generate_hvco') {
+        const pMeta = parentNode.meta || {};
+        // Find best pain point to use: visceral symptom > motivation > deep fear
+        const painPoint = (pMeta.visceralSymptoms && pMeta.visceralSymptoms[0]) || pMeta.motivation || "Generic Pain";
+        
+        updateNode(nodeId, { isLoading: true });
+        try {
+            const result = await generateHVCOIdeas(project, painPoint);
+            const hvcos = result.data;
+            const HORIZONTAL_GAP = 600;
+            const VERTICAL_SPACING = 250;
+            const totalHeight = (hvcos.length - 1) * VERTICAL_SPACING;
+            const startY = parentNode.y - (totalHeight / 2);
+            
+            hvcos.forEach((hvco, index) => {
+                const newNodeId = `hvco-${Date.now()}-${index}`;
+                addNode({
+                    id: newNodeId,
+                    type: NodeType.HVCO_NODE,
+                    parentId: nodeId,
+                    title: hvco.title,
+                    description: "Lead Magnet (Blue Ocean)",
+                    x: parentNode.x + HORIZONTAL_GAP,
+                    y: startY + (index * VERTICAL_SPACING),
+                    hvcoData: hvco,
+                    stage: CampaignStage.TESTING,
+                    meta: { personaName: pMeta.name },
+                    inputTokens: result.inputTokens / 3,
+                    outputTokens: result.outputTokens / 3,
+                    estimatedCost: ((result.inputTokens/1000000)*0.3 + (result.outputTokens/1000000)*2.5) / 3
+                });
+                addEdge(nodeId, newNodeId);
+            });
+        } catch (e) { console.error(e); }
+        updateNode(nodeId, { isLoading: false });
     }
 
     if (action === 'generate_creatives') {

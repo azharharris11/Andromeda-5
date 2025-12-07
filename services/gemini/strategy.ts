@@ -1,6 +1,6 @@
 
 import { Type } from "@google/genai";
-import { ProjectContext, GenResult, StoryOption, BigIdeaOption, MechanismOption } from "../../types";
+import { ProjectContext, GenResult, StoryOption, BigIdeaOption, MechanismOption, HVCOOption } from "../../types";
 import { ai, extractJSON } from "./client";
 
 export const auditHeadlineSabri = async (headline: string, audience: string): Promise<string> => {
@@ -134,12 +134,26 @@ export const generateMechanisms = async (project: ProjectContext, bigIdea: BigId
 
 export const generateHooks = async (project: ProjectContext, bigIdea: BigIdeaOption, mechanism: MechanismOption): Promise<GenResult<string[]>> => {
   const model = "gemini-2.5-flash";
+  
   const prompt = `
-    ROLE: Copywriter
+    ROLE: Tabloid Editor / Direct Response Copywriter.
     
-    Combine these elements into 5 distinct thumb-stopping hooks:
-    1. Big Idea: ${bigIdea.headline}
-    2. Mechanism: ${mechanism.scientificPseudo} (${mechanism.ums})
+    TASK: Write 5 "Thumb-Stopping" Hooks based on:
+    Big Idea: ${bigIdea.headline}
+    Mechanism: ${mechanism.scientificPseudo} (${mechanism.ums})
+    
+    SABRI SUBY INSTRUCTION:
+    Go to the "Gossip Magazine" rack (e.g., Cosmopolitan, National Enquirer).
+    Steal their headline structures. They are the masters of curiosity gaps.
+    
+    RULES:
+    1. Use "Shock & Awe".
+    2. Be Specific (Use Odd Numbers).
+    3. Call out the "Enemy" or a "Hidden Danger".
+    4. TONE: Urgent, slightly controversial, "Trashy but Irresistible".
+    
+    BAD HOOK: "Here is how to lose weight."
+    GOOD HOOK (Gossip Style): "The '3-Second Morning Ritual' Doctors Are Begging You To Stop Using."
     
     Output a simple JSON string array.
   `;
@@ -214,6 +228,63 @@ export const generateAngles = async (project: ProjectContext, personaName: strin
 
   return {
     data: extractJSON(response.text || "[]"),
+    inputTokens: response.usageMetadata?.promptTokenCount || 0,
+    outputTokens: response.usageMetadata?.candidatesTokenCount || 0
+  };
+};
+
+export const generateHVCOIdeas = async (project: ProjectContext, painPoint: string): Promise<GenResult<HVCOOption[]>> => {
+  const model = "gemini-2.5-flash";
+  const prompt = `
+    ROLE: Sabri Suby (Strategy).
+    
+    CONTEXT:
+    The market is tired of "Hard Offers" (Buy Now). We need to catch the 97% of people who are just "Looking for Info".
+    We need a "High Value Content Offer" (HVCO) - a Bait piece of content (PDF/Video/Guide).
+    
+    PRODUCT: ${project.productName}
+    PAIN POINT: ${painPoint}
+    
+    TASK:
+    Generate 3 HVCO (Lead Magnet) Titles that solve a specific "Bleeding Neck" problem WITHOUT asking for a purchase.
+    
+    CRITERIA:
+    1. Must sound like "Forbidden Knowledge" or "Insider Secrets".
+    2. Must be a "Mechanism" (e.g., The 3-Step System, The Checklist).
+    3. Format: PDF Guide, Cheat Sheet, or Video Training.
+    
+    EXAMPLE:
+    Product: SEO Agency.
+    HVCO: "The 17-Point SEO Death-Checklist That Google Doesn't Want You To Know."
+    
+    OUTPUT JSON:
+    - title: The Catchy Title.
+    - format: PDF/Video/Webinar.
+    - hook: Why they need to download it NOW.
+  `;
+
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            format: { type: Type.STRING },
+            hook: { type: Type.STRING }
+          },
+          required: ["title", "format", "hook"]
+        }
+      }
+    }
+  });
+  
+  return {
+    data: extractJSON<HVCOOption[]>(response.text || "[]"),
     inputTokens: response.usageMetadata?.promptTokenCount || 0,
     outputTokens: response.usageMetadata?.candidatesTokenCount || 0
   };

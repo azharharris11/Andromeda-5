@@ -1,7 +1,40 @@
 
 import { Type } from "@google/genai";
-import { ProjectContext, NodeData, PredictionMetrics, GenResult } from "../../types";
+import { ProjectContext, NodeData, PredictionMetrics, GenResult, AdCopy } from "../../types";
 import { ai, extractJSON } from "./client";
+
+export const checkAdCompliance = async (adCopy: AdCopy): Promise<string> => {
+  const model = "gemini-2.5-flash";
+  const prompt = `
+    ROLE: Facebook/TikTok Ad Policy Expert.
+    
+    TASK: Review the following ad copy for policy violations.
+    
+    HEADLINE: ${adCopy.headline}
+    PRIMARY TEXT: ${adCopy.primaryText}
+    
+    CHECKLIST:
+    1. Personal Attributes (Directly asserting user has a disability, medical condition, or financial status).
+    2. Before/After claims (Unrealistic results).
+    3. Misleading/False Claims.
+    4. Profanity/Glitch text.
+    
+    OUTPUT:
+    Return "Compliant" if it passes.
+    If it fails, return a short warning explaining WHY (max 1 sentence).
+  `;
+
+  try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt
+      });
+      return response.text?.trim() || "Compliance Check Failed";
+  } catch (e) {
+      console.error("Compliance Check Error", e);
+      return "Error checking compliance.";
+  }
+};
 
 export const predictCreativePerformance = async (
     project: ProjectContext, 

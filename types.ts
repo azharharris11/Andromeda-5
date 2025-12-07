@@ -10,7 +10,8 @@ export enum NodeType {
   BIG_IDEA_NODE = 'BIG_IDEA_NODE',   // Single Big Idea
   MECHANISM_NODE = 'MECHANISM_NODE', // Single Mechanism
   HOOK_NODE = 'HOOK_NODE',           // Single Hook
-  SALES_LETTER = 'SALES_LETTER'      // Final Output
+  SALES_LETTER = 'SALES_LETTER',     // Final Output
+  HVCO_NODE = 'HVCO_NODE'            // High Value Content Offer (Lead Magnet)
 }
 
 export enum CreativeFormat {
@@ -34,6 +35,8 @@ export enum CreativeFormat {
   BEFORE_AFTER = 'Before & After',
   WHITEBOARD = 'Whiteboard',
   EDUCATIONAL_RANT = 'Green Screen Rant',
+  OLD_ME_VS_NEW_ME = 'Old Me vs New Me', // NEW
+  PRESS_FEATURE = 'Press/Media Feature', // NEW
 
   // --- NATIVE / SOCIAL ---
   TWITTER_REPOST = 'Twitter Repost',
@@ -51,6 +54,8 @@ export enum CreativeFormat {
 
   // --- LOGIC / CONVERSION ---
   US_VS_THEM = 'Us vs Them',
+  VENN_DIAGRAM = 'Venn Diagram', // NEW
+  TESTIMONIAL_HIGHLIGHT = 'Highlighted Review', // NEW
   GRAPH_CHART = 'Data Visual',
   TIMELINE_JOURNEY = 'Timeline',
   BENEFIT_POINTERS = 'Benefit Anatomy', 
@@ -99,14 +104,13 @@ export enum TestingTier {
 
 export type ViewMode = 'LAB' | 'VAULT';
 
-// UPDATED: Prediction Score instead of Fake Metrics
 export interface PredictionMetrics {
   score: number; // 0-100
   hookStrength: 'Weak' | 'Moderate' | 'Strong' | 'Viral';
   clarity: 'Confusing' | 'Clear' | 'Crystal Clear';
   emotionalResonance: 'Flat' | 'Engaging' | 'Visceral';
-  reasoning: string; // Why did AI give this score?
-  sabriAudit?: string; // NEW: The 4 U's audit text
+  reasoning: string; 
+  sabriAudit?: string; 
 }
 
 export interface AdCopy {
@@ -137,6 +141,12 @@ export interface MechanismOption {
   scientificPseudo: string; 
 }
 
+export interface HVCOOption {
+  title: string;
+  format: string;
+  hook: string;
+}
+
 export interface NodeData {
   id: string;
   type: NodeType;
@@ -150,10 +160,11 @@ export interface NodeData {
   bigIdeaData?: BigIdeaOption;
   mechanismData?: MechanismOption;
   hookData?: string;
+  hvcoData?: HVCOOption;
   
   // Creative specific
   imageUrl?: string; 
-  videoUrl?: string; // NEW: Google Veo Output
+  videoUrl?: string; 
   carouselImages?: string[]; 
   format?: CreativeFormat;
   adCopy?: AdCopy; 
@@ -166,7 +177,6 @@ export interface NodeData {
   stage?: CampaignStage; 
   isGhost?: boolean; 
   
-  // NEW: Qualitative Prediction instead of Simulation
   prediction?: PredictionMetrics;
   
   // Andromeda Logic
@@ -181,7 +191,6 @@ export interface NodeData {
   x: number;
   y: number;
   
-  // Added properties to fix errors
   isWinning?: boolean;
   postId?: string;
   aiInsight?: string;
@@ -204,7 +213,6 @@ export interface ProjectContext {
   brandVoice?: string;
   brandVoiceOptions?: string[]; 
   
-  // NEW: Calibration Data for Few-Shot Prompting
   brandCopyExamples?: string; 
 
   funnelStage?: FunnelStage;

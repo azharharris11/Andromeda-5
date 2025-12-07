@@ -126,6 +126,20 @@ export const generateCreativeImage = async (
         }
       }
   }
+  // === AAZAR SHAD'S WINNING FORMATS ===
+  else if (format === CreativeFormat.VENN_DIAGRAM) {
+      finalPrompt = `A simple, minimalist Venn Diagram graphic on a solid, clean background. Left Circle Label: "Competitors" or "Others". Right Circle Label: "${project.productName}". The Intersection (Middle) contains the key benefit: "${angle}". Style: Corporate Memphis flat design or clean line art. High contrast text. The goal is to show that ONLY this product has the winning combination. ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
+  }
+  else if (format === CreativeFormat.PRESS_FEATURE) {
+      finalPrompt = `A realistic digital screenshot of an online news article featuring ${project.productName}. Header shows a generic credible media logo (e.g., 'Daily News' or 'TechLife'). Headline reads: "${angle}". The article body contains a high-quality photo of the product embedded. Vibe: Trustworthy, Authority, 'As Seen In'. ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
+  }
+  else if (format === CreativeFormat.TESTIMONIAL_HIGHLIGHT) {
+      finalPrompt = `A close-up shot of a printed customer review or a digital review card on paper texture. The text reads a testimonial about ${project.productName}. The specific phrase "${angle}" is HIGHLIGHTED with a bright neon yellow or pink marker. The rest of the text is slightly blurred to focus attention on the highlight. Vibe: Authentic social proof. ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
+  }
+  else if (format === CreativeFormat.OLD_ME_VS_NEW_ME) {
+      finalPrompt = `A split-screen comparison image. Left Side labeled "Old Me": Shows the 'old habit' or competitor product being thrown in a trash can, or sitting in a gloomy, messy, grey environment. Right Side labeled "New Me": Shows ${project.productName} in a bright, organized, glowing environment. Emotion: Frustration vs Relief. Text Overlay: "Them" vs "Us" or "Before" vs "After". ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
+  }
+
   // === OTHER FORMATS ===
   else if (format === CreativeFormat.STICKY_NOTE_REALISM) {
     finalPrompt = `A real yellow post-it sticky note stuck on a surface. Handwritten black marker text on the note says: "${angle}". Sharp focus on the text, realistic paper texture, soft shadows. ${appliedEnhancer}`;

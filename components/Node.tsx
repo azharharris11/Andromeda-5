@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NodeData, NodeType, CampaignStage } from '../types';
-import { User, Zap, Image as ImageIcon, Target, Award, RefreshCw, Sparkles, TrendingUp, DollarSign, MousePointer2, Ghost, Mic, Layers, Cpu, Archive, Search, Lightbulb, PenTool, BookOpen, ArrowRight, MessageCircle, Activity, Video } from 'lucide-react';
+import { User, Zap, Image as ImageIcon, Target, Award, RefreshCw, Sparkles, TrendingUp, DollarSign, MousePointer2, Ghost, Mic, Layers, Cpu, Archive, Search, Lightbulb, PenTool, BookOpen, ArrowRight, MessageCircle, Activity, Video, Magnet } from 'lucide-react';
 
 interface NodeProps {
   data: NodeData;
@@ -87,6 +87,14 @@ const Node: React.FC<NodeProps> = ({ data, selected, onClick, onAction, isGridVi
         iconBg: 'bg-emerald-100',
         handle: 'bg-emerald-400'
      };
+    if (data.type === NodeType.HVCO_NODE) return {
+        container: 'bg-white ring-1 ring-teal-200 shadow-lg shadow-teal-500/10',
+        header: 'bg-teal-50/50 border-b border-teal-100 text-teal-800',
+        text: 'text-slate-900',
+        accent: 'text-teal-600',
+        iconBg: 'bg-teal-100',
+        handle: 'bg-teal-400'
+     };
 
     return {
       container: 'bg-white ring-1 ring-slate-200 shadow-md hover:shadow-xl', 
@@ -113,6 +121,7 @@ const Node: React.FC<NodeProps> = ({ data, selected, onClick, onAction, isGridVi
       case NodeType.MECHANISM_NODE: return <Cpu className="w-3.5 h-3.5 text-cyan-600" />;
       case NodeType.HOOK_NODE: return <Sparkles className="w-3.5 h-3.5 text-pink-500" />;
       case NodeType.SALES_LETTER: return <BookOpen className="w-3.5 h-3.5 text-emerald-600" />;
+      case NodeType.HVCO_NODE: return <Magnet className="w-3.5 h-3.5 text-teal-600" />;
       default: return <Zap className="w-3.5 h-3.5 text-slate-600" />;
     }
   };
@@ -257,6 +266,16 @@ const Node: React.FC<NodeProps> = ({ data, selected, onClick, onAction, isGridVi
              </div>
         )}
         
+        {/* HVCO NODE */}
+        {data.type === NodeType.HVCO_NODE && data.hvcoData && (
+             <div className="mt-1 space-y-2">
+                 <div className="flex gap-2">
+                    <span className="text-[9px] bg-teal-100 text-teal-800 px-1.5 py-0.5 rounded font-bold uppercase">{data.hvcoData.format}</span>
+                 </div>
+                 <p className="text-[10px] text-slate-500 italic">"{data.hvcoData.hook}"</p>
+             </div>
+        )}
+        
         {/* SALES LETTER DISPLAY */}
         {data.type === NodeType.SALES_LETTER && data.fullSalesLetter && (
             <div className="mt-2 p-3 bg-white border border-slate-200 rounded-lg max-h-[200px] overflow-y-auto">
@@ -302,12 +321,20 @@ const Node: React.FC<NodeProps> = ({ data, selected, onClick, onAction, isGridVi
             )}
             
             {data.type === NodeType.PERSONA && (
-                <button 
-                onClick={(e) => { e.stopPropagation(); onAction('expand_angles', data.id); }}
-                className="w-full py-2 bg-white hover:bg-pink-50 hover:border-pink-200 text-pink-600 text-xs font-medium rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                <Target className="w-3 h-3" /> Expand Angles
-                </button>
+                <div className="flex flex-col gap-1">
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('expand_angles', data.id); }}
+                    className="w-full py-2 bg-white hover:bg-pink-50 hover:border-pink-200 text-pink-600 text-xs font-medium rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                    <Target className="w-3 h-3" /> Expand Angles
+                    </button>
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('generate_hvco', data.id); }}
+                    className="w-full py-2 bg-white hover:bg-teal-50 hover:border-teal-200 text-teal-600 text-xs font-medium rounded-lg border border-slate-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                    <Magnet className="w-3 h-3" /> Generate Lead Magnets
+                    </button>
+                </div>
             )}
             
             {data.type === NodeType.ANGLE && (
