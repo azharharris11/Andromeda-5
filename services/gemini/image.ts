@@ -55,7 +55,7 @@ export const generateCreativeImage = async (
   }
 
   // === LOGIC UPGRADE: LEAD MAGNET VISUAL COHERENCE ---
-  const isLeadMagnet = /guide|checklist|report|pdf|cheat sheet|blueprint|system/i.test(angle);
+  const isLeadMagnet = /guide|checklist|report|pdf|cheat sheet|blueprint|system|protocol|roadmap|masterclass|training|secrets|list|whitepaper/i.test(angle);
   let leadMagnetInstruction = "";
   if (isLeadMagnet && format !== CreativeFormat.LEAD_MAGNET_3D) {
       leadMagnetInstruction = `IMPORTANT: The subject is holding a printed document, binder, or iPad displaying a report titled "${angle}". Do NOT show a retail product bottle. Show the information asset.`;
@@ -157,7 +157,7 @@ export const generateCreativeImage = async (
   }
   else if (format === CreativeFormat.TESTIMONIAL_HIGHLIGHT) {
       finalPrompt = `
-        A close-up shot of a printed customer review on a piece of paper or a sticky note.
+        A close-up shot of a printed customer review or a digital review card on paper texture.
         Text: "${angle}".
         Key phrases are HIGHLIGHTED in bright neon yellow marker.
         Background: A messy desk or kitchen counter (Native/UGC vibe).

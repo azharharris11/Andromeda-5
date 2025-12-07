@@ -129,20 +129,22 @@ export const generateAdCopy = async (
   project: ProjectContext, 
   persona: any, 
   concept: CreativeConcept,
-  format?: CreativeFormat
+  format?: CreativeFormat,
+  isHVCOFlow: boolean = false
 ): Promise<GenResult<AdCopy>> => {
   const model = "gemini-2.5-flash";
   const country = project.targetCountry || "USA";
   const isIndo = country.toLowerCase().includes("indonesia");
 
   // DETECT LEAD MAGNET / HVCO
-  const isHVCO = format === CreativeFormat.LEAD_MAGNET_3D || concept.visualScene.includes("Book") || concept.visualScene.includes("Report");
+  // We use the explicit flag from App.tsx OR the visual cues.
+  const isHVCO = isHVCOFlow || format === CreativeFormat.LEAD_MAGNET_3D || concept.visualScene.includes("Book") || concept.visualScene.includes("Report");
 
   let specialInstruction = "";
   if (isHVCO) {
       specialInstruction = `
         MODE: SELLING THE CLICK (Lead Magnet).
-        DO NOT sell the product. Sell the FREE INFO.
+        DO NOT sell the product directly. Sell the FREE INFO (Guide/PDF/Video).
         
         CRITICAL: Use "FASCINATIONS" Bullet Points.
         (e.g., "• The 1 food you must avoid...")
@@ -206,8 +208,7 @@ export const generateAdCopy = async (
     2.  **Clear > Clever:** Clarity drives conversions.
     3.  **The "So That" Test:** Sell the AFTER state.
     4.  **Call Out the Audience/Pain:** Flag down the user immediately.
-    5.  **Scannability:** Under 7 words. High contrast thought.
-    6.  **Visual Hierarchy:** The headline MUST match the image scene described below.
+    5.  **Visual Hierarchy:** The headline MUST match the image scene described below.
 
     **STRATEGY CONTEXT:**
     Product: ${project.productName}
@@ -223,7 +224,7 @@ export const generateAdCopy = async (
 
     **OUTPUT FORMATTING:**
     - primaryText: Must be visually spaced out. Use line breaks.
-    - headline: Under 7 words. High contrast. MUST be congruent with the Visual Scene.
+    - headline: High contrast. MUST be congruent with the Visual Scene.
     - cta: Clear instruction.
   `;
 

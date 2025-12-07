@@ -408,6 +408,17 @@ const Node: React.FC<NodeProps> = ({ data, selected, onClick, onAction, isGridVi
                 </button>
             )}
 
+            {data.type === NodeType.HVCO_NODE && (
+                <div className="flex flex-col gap-1">
+                    <button 
+                    onClick={(e) => { e.stopPropagation(); onAction('open_format_selector', data.id); }}
+                    className="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center justify-center gap-2"
+                    >
+                    <ImageIcon className="w-3 h-3" /> Generate HVCO Ads
+                    </button>
+                </div>
+            )}
+
             </>
         )}
         

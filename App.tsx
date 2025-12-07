@@ -186,7 +186,8 @@ const App = () => {
     else if (parentNode.type === NodeType.HVCO_NODE && parentNode.hvcoData) angleToUse = parentNode.hvcoData.title;
 
     const personaToUse = parentNode.meta?.personaName || "Story Protagonist";
-    
+    const isHVCOFlow = parentNode.type === NodeType.HVCO_NODE;
+
     formats.forEach((format, index) => {
       const row = Math.floor(index / COLUMNS);
       const col = index % COLUMNS;
@@ -235,7 +236,7 @@ const App = () => {
                  visualConcept = conceptResult.data;
 
                  updateNode(node.id, { description: "Copywriter: Drafting..." });
-                 const copyResult = await generateAdCopy(projectContextForGen, parentNode.meta || { name: personaToUse }, visualConcept, fmt);
+                 const copyResult = await generateAdCopy(projectContextForGen, parentNode.meta || { name: personaToUse }, visualConcept, fmt, isHVCOFlow);
                  accumulatedInput += copyResult.inputTokens;
                  accumulatedOutput += copyResult.outputTokens;
                  finalAdCopy = copyResult.data;
@@ -258,7 +259,7 @@ const App = () => {
                      accumulatedOutput += conceptResult.outputTokens;
                      visualConcept = conceptResult.data;
                      
-                     const copyResult = await generateAdCopy(projectContextForGen, { name: personaToUse }, visualConcept, fmt);
+                     const copyResult = await generateAdCopy(projectContextForGen, { name: personaToUse }, visualConcept, fmt, isHVCOFlow);
                      accumulatedInput += copyResult.inputTokens;
                      accumulatedOutput += copyResult.outputTokens;
                      finalAdCopy = copyResult.data;
