@@ -72,7 +72,7 @@ export const generateCreativeImage = async (
   let finalPrompt = "";
   let appliedEnhancer = professionalEnhancers; 
   
-  const contextInjection = `(Context: The image must match this headline: "${angle}").`;
+  const contextInjection = `(Context: Product is ${project.productName} - ${project.productDescription}. Headline to match: "${angle}").`;
 
   // 1. UGLY / PATTERN INTERRUPT LOGIC
   const isUglyFormat = 

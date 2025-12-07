@@ -24,6 +24,9 @@ export const generateSalesLetter = async (
     4. THE SOLUTION (Mechanism): "${mechanism.scientificPseudo}" - "${mechanism.ums}" (The new logic).
     5. OFFER: ${project.offer} for ${project.productName}.
     
+    PRODUCT DETAILS:
+    ${project.productDescription}
+    
     TONE: Persuasive, storytelling-based, logical yet emotional.
     FORMAT: Markdown. Use bolding for emphasis. Keep paragraphs short (1-2 sentences).
   `;
@@ -68,7 +71,8 @@ export const generateCreativeConcept = async (
     3. Do the EXACT OPPOSITE. If they go high, we go low (lo-fi). If they are polished, we are raw.
     
     **INPUTS:**
-    Product: ${project.productName}
+    Product Name: ${project.productName}
+    Product Description (WHAT IT IS): ${project.productDescription}
     Winning Insight: ${angle}
     Format: ${format}
     Context: ${project.targetCountry}
@@ -211,7 +215,8 @@ export const generateAdCopy = async (
     5.  **Visual Hierarchy:** The headline MUST match the image scene described below.
 
     **STRATEGY CONTEXT:**
-    Product: ${project.productName}
+    Product Name: ${project.productName}
+    Product Description: ${project.productDescription}
     Offer: ${project.offer}
     Target: ${persona.name}
     

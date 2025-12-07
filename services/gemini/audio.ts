@@ -23,7 +23,7 @@ export const generateAdScript = async (project: ProjectContext, personaName: str
 
     const response = await ai.models.generateContent({
         model,
-        contents: `Write a 15-second TikTok/Reels UGC script for: ${project.productName}. Language: ${lang}. ${extraInstr}. Angle: ${angle}. Keep it under 40 words. Hook the viewer instantly.`
+        contents: `Write a 15-second TikTok/Reels UGC script for: ${project.productName}. What is it?: ${project.productDescription}. Language: ${lang}. ${extraInstr}. Angle: ${angle}. Keep it under 40 words. Hook the viewer instantly.`
     });
     return response.text || "Script generation failed.";
 };
