@@ -1,5 +1,5 @@
 
-import { ProjectContext, CreativeFormat, GenResult } from "../../types";
+import { ProjectContext, CreativeFormat, GenResult, MarketAwareness } from "../../types";
 import { ai } from "./client";
 
 const SAFETY_GUIDELINES = `
@@ -67,12 +67,23 @@ export const generateCreativeImage = async (
   const ugcEnhancers = "Shot on iPhone 15, raw photo, realistic skin texture, authentic amateur photography, slightly messy background, no bokeh, everything in focus (deep depth of field).";
 
   // NEW: TRASH TIER FOR "UGLY ADS" - SABRI SUBY "NATIVE CONTENT" UPGRADE
-  const trashTierEnhancers = "Low fidelity, authentic UGC. Shot on iPhone. Slight motion blur allowed. Bad lighting (overhead fluorescent or direct flash). Looks like a photo sent to a group chat. NO professional composition. The goal is 'Pattern Interrupt' - it must NOT look like an ad.";
+  // Updated with explicit exclusions/negative prompting simulation
+  const trashTierEnhancers = "Amateur phone photo. EXCLUDE: Professional lighting, bokeh, symmetry, perfect skin, studio setup, 4k, HDR, smooth textures. MAKE IT LOOK LIKE A MISTAKE. Low fidelity, authentic UGC. Shot on iPhone. Slight motion blur allowed. Bad lighting (overhead fluorescent or direct flash). Looks like a photo sent to a group chat. NO professional composition. The goal is 'Pattern Interrupt' - it must NOT look like an ad.";
 
   let finalPrompt = "";
   let appliedEnhancer = professionalEnhancers; 
   
-  const contextInjection = `(Context: Product is ${project.productName} - ${project.productDescription}. Headline to match: "${angle}").`;
+  // === LOGIC UPGRADE: UNAWARE STAGE PRODUCT LEAKAGE PREVENTION ===
+  const isHiddenPhase = project.marketAwareness === MarketAwareness.UNAWARE || project.marketAwareness === MarketAwareness.PROBLEM_AWARE;
+  let contextInjection = "";
+
+  if (isHiddenPhase) {
+      // FOKUS PADA MASALAH/GEJALA, BUKAN PRODUK
+      contextInjection = `(Context: Subject is experiencing the PROBLEM of ${angle}. Do NOT show any branded products, boxes, or logos. This is a generic life scene.)`;
+  } else {
+      // BARU TAMPILKAN PRODUK
+      contextInjection = `(Context: Product is ${project.productName} - ${project.productDescription}. Headline to match: "${angle}").`;
+  }
 
   // 1. UGLY / PATTERN INTERRUPT LOGIC
   const isUglyFormat = 
@@ -113,6 +124,7 @@ export const generateCreativeImage = async (
           // Green Screen Logic
           finalPrompt = `A person engaging with the camera, 'Green Screen' effect style. Background is a screenshot of a news article or a graph related to ${angle}. The person looks passionate/angry (ranting). Native TikTok/Reels aesthetic. UI overlay: "Stop doing this!". ${ugcEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
       } else {
+        // Updated Story Logic: STRICT adherence to visualScene action
         // 1. Determine "Candid Environment"
         const randomEnv = Math.random();
         let environment = "inside a modern car during daytime, sunlight hitting face (car selfie vibe)";
@@ -135,7 +147,15 @@ export const generateCreativeImage = async (
         }
 
         if (environment) {
-            finalPrompt = `A vertical, authentic UGC photo of a person ${environment}. ${uiOverlay} ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}. Make it look like a real Instagram Story.`;
+            // Enhanced "Candid Realism" Prompt
+            finalPrompt = `
+              A brutally authentic, amateur photo taken from a first-person perspective (POV) or candid angle.
+              SCENE ACTION (Strictly follow this): ${visualScene} (e.g., looking at a pile of bills, staring in a mirror touching face, holding a broken object).
+              Environment: Messy, real-life, unpolished background (e.g., messy bedroom, car dashboard, kitchen counter with clutter).
+              Lighting: Bad overhead lighting or harsh flash (Direct Flash Photography).
+              Quality: Slightly grainy, iPhone photo quality.
+              ${uiOverlay} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}. Make it look like a real Instagram Story.
+            `;
         } else {
             finalPrompt = `${uiOverlay} ${appliedEnhancer} ${SAFETY_GUIDELINES}. Photorealistic UI render.`;
         }
@@ -179,6 +199,17 @@ export const generateCreativeImage = async (
         No digital screens. Make it look like a physical, expensive package.
         ${appliedEnhancer} ${SAFETY_GUIDELINES}
       `;
+  }
+  // NEW: MECHANISM X-RAY VISUAL
+  else if (format === CreativeFormat.MECHANISM_XRAY) {
+    finalPrompt = `
+      A scientific or medical illustration style (clean, 3D render or cross-section diagram).
+      Subject: Visualizing the "${angle}" (The internal root cause/UMP).
+      Detail: Show the biological or mechanical failure point clearly inside the body/object.
+      Labeling: Add a red arrow pointing to the problem area.
+      Vibe: Educational, shocking discovery, "The Hidden Enemy".
+      ${SAFETY_GUIDELINES}
+    `;
   }
 
   // === OTHER FORMATS ===
@@ -287,6 +318,11 @@ export const generateCarouselSlides = async (
             if (i === 1) slidePrompt = `${technicalPrompt}. Slide 1: The Hook/Problem. High tension visual.`;
             if (i === 2) slidePrompt = `${technicalPrompt}. Slide 2: The Solution/Process. Detailed macro shot. Keep visual identity.`;
             if (i === 3) slidePrompt = `${technicalPrompt}. Slide 3: The Result/CTA. Happy resolution.`;
+        }
+
+        // Add character consistency text reinforcement
+        if (i > 1) {
+             slidePrompt += " IMPORTANT: MAINTAIN CHARACTER CONSISTENCY. Same subject as Slide 1. Same hair, same clothes.";
         }
 
         const result = await generateCreativeImage(

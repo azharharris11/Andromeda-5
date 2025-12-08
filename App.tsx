@@ -42,6 +42,7 @@ const STRATEGIC_GROUPS: Record<string, CreativeFormat[]> = {
     CreativeFormat.VENN_DIAGRAM,         
     CreativeFormat.TESTIMONIAL_HIGHLIGHT,
     CreativeFormat.LEAD_MAGNET_3D, // NEW: Sabri HVCO
+    CreativeFormat.MECHANISM_XRAY, // NEW: Scientific/Medical
     CreativeFormat.CAROUSEL_EDUCATIONAL, 
     CreativeFormat.CAROUSEL_REAL_STORY,  
     CreativeFormat.US_VS_THEM,           

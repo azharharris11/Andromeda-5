@@ -38,6 +38,7 @@ export enum CreativeFormat {
   OLD_ME_VS_NEW_ME = 'Old Me vs New Me', 
   PRESS_FEATURE = 'Press/Media Feature', 
   LEAD_MAGNET_3D = '3D Book/Report Mockup', // NEW: Sabri Style
+  MECHANISM_XRAY = 'Mechanism X-Ray', // NEW: Medical/Scientific visualization
 
   // --- NATIVE / SOCIAL ---
   TWITTER_REPOST = 'Twitter Repost',

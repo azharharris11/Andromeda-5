@@ -111,6 +111,7 @@ export const analyzeLandingPageContext = async (markdown: string): Promise<Proje
     model,
     contents: `You are a Data Analyst for a Direct Response Agency. 
     Analyze the following raw data (Landing Page Content) to extract the foundational truths.
+    Also extract 2-3 examples of existing copy/headlines found on the page to serve as "Tone Calibration" data.
     
     RAW DATA:
     ${markdown.substring(0, 30000)}
@@ -127,7 +128,8 @@ export const analyzeLandingPageContext = async (markdown: string): Promise<Proje
           brandVoice: { type: Type.STRING },
           brandVoiceOptions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5 distinct brand voice options based on the content tone." },
           offer: { type: Type.STRING, description: "The primary hook or deal found on the page." },
-          offerOptions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5 potential offer angles or deal structures inferred." }
+          offerOptions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "5 potential offer angles or deal structures inferred." },
+          brandCopyExamples: { type: Type.STRING, description: "2-3 raw sentences/headlines found on the page that represent the brand voice best." }
         },
         required: ["productName", "productDescription", "targetAudience"]
       }
@@ -145,6 +147,7 @@ export const analyzeLandingPageContext = async (markdown: string): Promise<Proje
     brandVoiceOptions: data.brandVoiceOptions || [],
     offer: data.offer || "Shop Now",
     offerOptions: data.offerOptions || [],
+    brandCopyExamples: data.brandCopyExamples || "",
     landingPageUrl: "" 
   } as ProjectContext;
 };
@@ -157,7 +160,7 @@ export const analyzeImageContext = async (base64Image: string): Promise<ProjectC
     contents: {
       parts: [
         { inlineData: { mimeType: "image/jpeg", data: base64Data } },
-        { text: "Analyze this product image. Extract the Product Name, Description, Target Audience. Also infer the Brand Voice (and 5 options) and potential Offers (and 5 options) suitable for this visual style." }
+        { text: "Analyze this product image. Extract the Product Name, Description, Target Audience. Also infer the Brand Voice (and 5 options) and potential Offers (and 5 options) suitable for this visual style. Finally, write 2-3 example copy lines that match this visual vibe." }
       ]
     },
     config: {
@@ -172,7 +175,8 @@ export const analyzeImageContext = async (base64Image: string): Promise<ProjectC
           brandVoice: { type: Type.STRING },
           brandVoiceOptions: { type: Type.ARRAY, items: { type: Type.STRING } },
           offer: { type: Type.STRING },
-          offerOptions: { type: Type.ARRAY, items: { type: Type.STRING } }
+          offerOptions: { type: Type.ARRAY, items: { type: Type.STRING } },
+          brandCopyExamples: { type: Type.STRING, description: "2-3 example copy lines matching this visual vibe." }
         },
         required: ["productName", "productDescription"]
       }
@@ -189,7 +193,8 @@ export const analyzeImageContext = async (base64Image: string): Promise<ProjectC
     brandVoice: data.brandVoice || "Visual & Aesthetic",
     brandVoiceOptions: data.brandVoiceOptions || [],
     offer: data.offer || "Check it out",
-    offerOptions: data.offerOptions || []
+    offerOptions: data.offerOptions || [],
+    brandCopyExamples: data.brandCopyExamples || ""
   } as ProjectContext;
 };
 
