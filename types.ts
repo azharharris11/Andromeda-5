@@ -41,6 +41,7 @@ export enum CreativeFormat {
   MECHANISM_XRAY = 'Mechanism X-Ray', // NEW: Medical/Scientific visualization
 
   // --- NATIVE / SOCIAL ---
+  IG_STORY_TEXT = 'IG Story Text Overlay', // NEW: Contextual Long Copy
   TWITTER_REPOST = 'Twitter Repost',
   PHONE_NOTES = 'iPhone Notes',
   AESTHETIC_MINIMAL = 'Aesthetic Minimal',

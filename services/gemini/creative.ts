@@ -79,7 +79,8 @@ export const generateCreativeConcept = async (
     ${awarenessInstruction}
     
     **CRITICAL FOR FORMAT '${format}':**
-    *   If 'Long Text' or 'Story': You MUST describe a vertical, candid, authentic shot (e.g., Selfie in car, Mirror selfie, Handheld). NO STOCK PHOTOS. The image description must explicitly mention WHERE the text overlay will go (e.g., "White text box above head").
+    *   If 'Long Text' or 'Story' or 'IG Story Text Overlay': You MUST describe a vertical, candid, authentic shot.
+    *   **CRITICAL NEGATIVE SPACE RULE:** For 'IG Story Text Overlay', the subject MUST be positioned to leave ample "Negative Space" (e.g., sky, blank wall, car ceiling) where text can be overlaid. Do not fill the frame with details.
     *   If 'Ugly Visual' or 'Pattern Interrupt': Describe a chaotic, low-fidelity scene.
     
     **TASK:**
@@ -147,153 +148,91 @@ export const generateAdCopy = async (
   const country = project.targetCountry || "USA";
   const isIndo = country.toLowerCase().includes("indonesia");
 
-  // 1. INFORMATION GAP LOGIC (Stage-Based Copy)
-  const isUnaware = project.marketAwareness === MarketAwareness.UNAWARE || project.marketAwareness === MarketAwareness.PROBLEM_AWARE;
-  let productContext = "";
+  // --- 1. PERSONA DEEP DIVE (Agar Emosional) ---
+  const deepPsychologyContext = `
+    TARGET PERSONA:
+    - Identity: ${persona.name}
+    - Pain Points/Visceral Symptoms: "${(persona.visceralSymptoms || []).join('", "')}"
+    - Deep Fear: "${persona.deepFear || 'Failure'}"
+    - Motivation: "${persona.motivation || 'Relief'}"
+    
+    CRITICAL INSTRUCTION: You are writing to THIS specific person. Use their vocabulary, their fears, and their slang.
+    Do NOT write a generic ad. Speak directly to their 'Bleeding Neck' problem defined above.
+  `;
 
-  if (isUnaware) {
-      // HIDE PRODUCT for Unaware/Problem Aware
-      productContext = `
-      CONTEXT: The user is in PAIN but does NOT know the solution exists.
-      FORBIDDEN: Do NOT mention "${project.productName}" in the Hook or Body. Do NOT mention the Offer yet.
-      FOCUS: Describe the symptoms, the frustration of failed attempts, and the "I realized" moment.
-      GOAL: Get them to say "That's exactly how I feel" (Identification).
-      `;
-  } else {
-      // SHOW PRODUCT for Solution/Product Aware
-      productContext = `
-      PRODUCT: ${project.productName}
-      DETAILS: ${project.productDescription}
-      OFFER: ${project.offer}
-      GOAL: Persuade them to buy now using scarcity and benefits.
-      `;
-  }
-
-  // 2. STRUCTURE LOGIC (Unaware Story)
-  let structureInstruction = "";
-  if (isUnaware) {
-      structureInstruction = `
-      STRUCTURE (Strictly Follow):
-      1. THE HOOK: A raw, specific admission or observation (e.g. "I almost fired my best employee yesterday").
-      2. IDENTIFICATION: Describe the visceral feeling of the problem. Use sensory details.
-      3. AMPLIFICATION: List 2-3 things they tried that FAILED.
-      4. THE TURN: A subtle hint that a "New Mechanism" exists (without naming the product yet).
-      5. CTA: "${project.offer}" (Only at the very end).
-      `;
-  }
-
-  // 3. MECHANISM INTEGRATION
-  let mechanismInstruction = "";
-  if (mechanism) {
-      mechanismInstruction = `
-      CORE ARGUMENT (THE LOGIC):
-      You must explain the failure of other solutions using this UMP (Unique Mechanism of Problem): "${mechanism.ump}".
-      Then, introduce the solution using this UMS (Unique Mechanism of Solution): "${mechanism.ums}".
-      Use the pseudo-scientific name: "${mechanism.scientificPseudo}".
-      `;
-  }
-
-  // DETECT LEAD MAGNET / HVCO
-  const isHVCO = isHVCOFlow || format === CreativeFormat.LEAD_MAGNET_3D || concept.visualScene.includes("Book") || concept.visualScene.includes("Report");
-
-  let specialInstruction = "";
+  // --- 2. TONE ADJUSTMENT (Agar Tidak Kaku) ---
   let toneInstruction = "";
-
-  if (isHVCO) {
-      specialInstruction = `
-        MODE: SELLING THE CLICK (Lead Magnet).
-        DO NOT sell the product directly. Sell the FREE INFO (Guide/PDF/Video).
-        
-        CRITICAL: Use "FASCINATIONS" Bullet Points.
-        (e.g., "• The 1 food you must avoid...")
-        (e.g., "• Why your doctor is wrong about X...")
-        (e.g., "• Page 7: The 3-minute trick that changes everything.")
-        
-        Create 3-5 Curiosity-Dripping Bullets based on the Hook: "${concept.hookComponent || 'Download Now'}".
-      `;
-      
-      // 4. HVCO ANTI-MARKETING TONE
+  if (isIndo) {
       toneInstruction = `
-        TONE: Whistleblower / Insider / "The thing they don't want you to know".
-        Do NOT sound like a marketer. Sound like a friend warning another friend.
-        Use phrases like:
-        - "Stop doing X immediately."
-        - "The lie we've been told about Y."
-        - "I found the missing document."
+        LANGUAGE STYLE: Bahasa Indonesia "Anak Jaksel" / Social Media Slang / Bahasa Gaul.
+        - FORBIDDEN WORDS (Too Formal): "Anda", "Kami", "Solusi", "Dapatkan", "Memperkenalkan", "Fitur", "Rasakan", "Temukan".
+        - MANDATORY WORDS/PARTICLES: "Gue/Lo" (or "Aku/Kamu" if soft persona), "Banget", "Sumpah", "Jujur", "Gimana sih", "sih", "deh", "dong", "kan".
+        - VIBE: Bestie sharing a secret or venting to a friend. Not a salesman holding a brochure.
+        - STRUCTURE: Short sentences. Lowercase is okay for aesthetic.
       `;
   } else {
-      // STANDARD TONE CALIBRATION
-      if (project.brandCopyExamples && project.brandCopyExamples.length > 10) {
-          // FEW-SHOT MODE (HIGH QUALITY)
-          toneInstruction = `
-            **CRITICAL TONE CALIBRATION (MIMIC THIS STYLE EXACTLY):**
-            I have provided examples of the client's winning copy below. 
-            Study the sentence length, slang usage, capitalization, and emotional density.
-            Your output MUST sound like it was written by the same person.
-            
-            === CLIENT EXAMPLES START ===
-            ${project.brandCopyExamples}
-            === CLIENT EXAMPLES END ===
-            
-            Do NOT revert to generic AI defaults. Use the examples above as your "Style Source of Truth".
-          `;
-      } else {
-          // ZERO-SHOT FALLBACK (LOWER QUALITY)
-          if (isIndo) {
-              toneInstruction = `
-                STYLE: "Bahasa Gaul" (Authentic Indonesian Social Media Slang).
-                ANTI-ROBOT RULES:
-                1. HARAM WORDS (Do NOT use): "Sobat", "Kawan", "Halo", "Apakah", "Solusi".
-                2. USE PARTICLES: "sih", "dong", "deh", "kan", "banget", "malah", "kok".
-                3. PRONOUNS: Use "Aku/Kamu" (Soft) or "Gue/Lo" (Edgy). Never "Anda".
-                4. TONE: Like a best friend gossiping or ranting.
-              `;
-          } else {
-              toneInstruction = `STYLE: Conversational, Authentic, Native Speaker level.`;
-          }
-      }
+      toneInstruction = `
+        LANGUAGE STYLE: Native Social Media English (TikTok/IG/Reddit).
+        - FORBIDDEN WORDS (Marketing Speak): "Discover", "Unlock", "Unleash", "Solution", "Introducing", "Revolutionary", "Elevate", "Game-changer".
+        - VIBE: Authentic, raw, slightly imperfect. Like a Reddit thread title or a tweet.
+        - STRUCTURE: Short, punchy lines. "In Media Res" storytelling.
+      `;
   }
 
-  // SYSTEM: HEADLINE CONTEXT LIBRARY (THE STATIC AD RULES)
+  // --- 3. FORMAT SPECIFIC RULES ---
+  let formatRule = "";
+  if (isHVCOFlow || format === CreativeFormat.LEAD_MAGNET_3D) {
+      formatRule = `
+        GOAL: Sell the CLICK, not the product.
+        Make them curious about the "Secret" inside the guide/video.
+        Use "Fascinations" (e.g., "• The one mistake creating 80% of your problem...").
+      `;
+  } else {
+      formatRule = `
+        GOAL: Stop the scroll with a relatable struggle.
+        START "IN MEDIA RES" (In the middle of the action).
+        
+        BAD START: "Are you struggling with X?" (Boring/Ad-like)
+        GOOD START: "I nearly cried looking at my bank account this morning..." (Story/Native)
+        GOOD START: "My doctor actually laughed when I asked about..." (Conflict)
+      `;
+  }
+
+  // --- 4. THE PROMPT (The Brain Transplant) ---
   const prompt = `
-    # Role: Senior Direct Response Copywriter (Static Ad Specialist)
-
-    **AAZAR SHAD'S "SKIM-ABILITY" RULE:**
-    People DO NOT read ads. They skim them.
-    1. NO Wall of Text. Paragraphs must be 1-2 lines max.
-    2. Use Bullet Points (•) or Emojis (✅) to break up benefits.
-    3. The first sentence must be a "Velcro Hook" (Short, punchy).
-
-    **MANDATORY INSTRUCTIONS:**
-    ${toneInstruction}
-    TARGET COUNTRY: ${country}.
-    ${specialInstruction}
-    ${structureInstruction}
-
-    **THE HEADLINE CONTEXT LIBRARY (RULES):**
-    1.  **Assume No One Knows You:** Treat the audience as COLD. Do not be vague.
-    2.  **Clear > Clever:** Clarity drives conversions.
-    3.  **The "So That" Test:** Sell the AFTER state.
-    4.  **Call Out the Audience/Pain:** Flag down the user immediately.
-    5.  **Visual Hierarchy:** The headline MUST match the image scene described below.
-
-    **STRATEGY CONTEXT:**
-    ${productContext}
-    Target: ${persona.name}
+    # ROLE: Viral Social Media Content Creator (NOT a Copywriter).
     
-    ${mechanismInstruction}
+    **YOUR ENEMY:** "Landing Page Copy".
+    If it sounds like a brochure, a TV commercial, or a website header, YOU FAIL.
+    If it sounds like a friend venting, gossiping, or sharing a lifehack, YOU WIN.
+
+    **INPUT CONTEXT:**
+    Product: ${project.productName} (${project.productDescription})
+    Offer: ${project.offer}
+    ${deepPsychologyContext}
     
-    **CONGRUENCE CONTEXT (IMAGE SCENE):**
-    Visual Scene: "${concept.visualScene}"
+    **VISUAL CONTEXT:**
+    The user sees: "${concept.visualScene}"
     Rationale: "${concept.congruenceRationale}"
     
-    **TASK:**
-    Write the ad copy applying the rules above.
+    **RULES OF ENGAGEMENT:**
+    1. **NO INTROS:** Never start with "Do you suffer from...?" or "Introducing...". Start with a Statement or a weird Question.
+    2. **MICRO-BLOG FORMAT:** Short lines. Lots of white space. No heavy paragraphs.
+    3. **NATIVE CONTENT:** If the visual is a meme, write a meme caption. If it's a story, write a story.
+    4. **THE "ANTI-AD" FILTER:** Would a real person post this? If no, rewrite it.
+    
+    ${toneInstruction}
+    ${formatRule}
+    ${mechanism ? `Hint at the Mechanism ("${mechanism.scientificPseudo}") as the 'New Way' or 'The Reason you failed before', but don't be boring/academic.` : ''}
 
-    **OUTPUT FORMATTING:**
-    - primaryText: Must be visually spaced out. Use line breaks.
-    - headline: High contrast. MUST be congruent with the Visual Scene.
-    - cta: Clear instruction.
+    **TASK:** Write the Instagram/TikTok Caption & Headline.
+
+    **OUTPUT JSON:**
+    {
+      "primaryText": "The caption. (Use emojis naturally 🧵👇)",
+      "headline": "The image headline (Max 7 words, punchy)",
+      "cta": "Button text (e.g. 'More Info', 'Download', 'Learn More')"
+    }
   `;
 
   const response = await ai.models.generateContent({

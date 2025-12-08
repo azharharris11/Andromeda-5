@@ -39,6 +39,7 @@ const STRATEGIC_GROUPS: Record<string, CreativeFormat[]> = {
   ],
 
   "🟠 Education & Social Proof (Build Trust)": [
+    CreativeFormat.IG_STORY_TEXT, // NEW: Native Story
     CreativeFormat.VENN_DIAGRAM,         
     CreativeFormat.TESTIMONIAL_HIGHLIGHT,
     CreativeFormat.LEAD_MAGNET_3D, // NEW: Sabri HVCO
@@ -189,6 +190,9 @@ const App = () => {
     const personaToUse = parentNode.meta?.personaName || "Story Protagonist";
     const isHVCOFlow = parentNode.type === NodeType.HVCO_NODE;
 
+    // Use parent meta if available, otherwise fall back to name only. This preserves Deep Psychology data.
+    const personaMeta = parentNode.meta || { name: personaToUse };
+
     formats.forEach((format, index) => {
       const row = Math.floor(index / COLUMNS);
       const col = index % COLUMNS;
@@ -239,7 +243,7 @@ const App = () => {
                  updateNode(node.id, { description: "Copywriter: Drafting..." });
                  const copyResult = await generateAdCopy(
                      projectContextForGen, 
-                     parentNode.meta || { name: personaToUse }, 
+                     personaMeta, 
                      visualConcept, 
                      fmt, 
                      isHVCOFlow, 
@@ -269,7 +273,7 @@ const App = () => {
                      
                      const copyResult = await generateAdCopy(
                          projectContextForGen, 
-                         { name: personaToUse }, 
+                         personaMeta, 
                          visualConcept, 
                          fmt, 
                          isHVCOFlow, 
@@ -293,9 +297,16 @@ const App = () => {
             finalAdCopy.complianceNotes = complianceStatus;
 
             updateNode(node.id, { description: "Visualizer: Rendering..." });
+            
+            // Set Aspect Ratio to VERTICAL for IG_STORY_TEXT
+            let targetAspectRatio = "1:1";
+            if (fmt === CreativeFormat.IG_STORY_TEXT || fmt === CreativeFormat.PHONE_NOTES || fmt === CreativeFormat.REELS_THUMBNAIL || fmt === CreativeFormat.HANDHELD_TWEET) {
+                targetAspectRatio = "9:16";
+            }
+
             const imgResult = await generateCreativeImage(
                 projectContextForGen, personaToUse, angleToUse, fmt, 
-                visualConcept.visualScene, visualConcept.visualStyle, visualConcept.technicalPrompt, "1:1"
+                visualConcept.visualScene, visualConcept.visualStyle, visualConcept.technicalPrompt, targetAspectRatio
             );
             
             accumulatedInput += imgResult.inputTokens;

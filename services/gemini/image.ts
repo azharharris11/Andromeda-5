@@ -1,3 +1,4 @@
+
 import { ProjectContext, CreativeFormat, GenResult, MarketAwareness } from "../../types";
 import { ai } from "./client";
 
@@ -127,7 +128,8 @@ export const generateCreativeImage = async (
     format === CreativeFormat.HANDHELD_TWEET ||
     format === CreativeFormat.STORY_POLL ||
     format === CreativeFormat.EDUCATIONAL_RANT ||
-    format === CreativeFormat.CHAT_CONVERSATION;
+    format === CreativeFormat.CHAT_CONVERSATION ||
+    format === CreativeFormat.IG_STORY_TEXT;
 
   // === METAPHOR MODE ===
   // Cek sederhana untuk kata kunci metafora
@@ -185,6 +187,20 @@ export const generateCreativeImage = async (
             Lighting: Screen glow on thumb.
             Make the UI look 100% authentic to the app.
             ${appliedEnhancer} ${SAFETY_GUIDELINES}
+          `;
+      } else if (format === CreativeFormat.IG_STORY_TEXT) {
+          // NEW: IG Story Text Overlay Logic (Contextual Long Copy)
+          finalPrompt = `
+            A realistic vertical photo formatted for Instagram Story.
+            VISUAL: ${visualScene}. A candid, authentic shot of a person (Persona: ${personaName}) experiencing the moment described in the text.
+            Environment: Authentic, real-life background (e.g. car interior, living room, looking out a window).
+            NEGATIVE SPACE: Ensure there is ample empty space (sky, wall, or ceiling) for text placement.
+            OVERLAY INSTRUCTION:
+            Superimpose a realistic "Instagram Text Bubble" or a "White Text Block with Rounded Corners".
+            TEXT CONTENT: The text inside must be a short paragraph (3-4 sentences) that expands on this idea: "${angle}". 
+            It should read like an internal monologue or a realization diary entry.
+            Make the text sharp, legible, and central to the composition.
+            ${culturePrompt} ${moodPrompt} ${ugcEnhancers} ${SAFETY_GUIDELINES}
           `;
       } else {
         // Updated Story Logic: STRICT adherence to visualScene action

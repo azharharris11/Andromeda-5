@@ -141,12 +141,29 @@ export const generateBigIdeas = async (project: ProjectContext, story: StoryOpti
 
 export const generateMechanisms = async (project: ProjectContext, bigIdea: BigIdeaOption): Promise<GenResult<MechanismOption[]>> => {
   const model = "gemini-2.5-flash";
+  const country = project.targetCountry || "USA";
+  const isIndo = country.toLowerCase().includes("indonesia");
+
+  let languageInstruction = "";
+  if (isIndo) {
+      languageInstruction = `
+      LANGUAGE: Indonesian (Casual/Conversational). 
+      - The 'scientificPseudo' can be in English if it sounds cooler/more authoritative (e.g. "Bio-Lock Technology").
+      - BUT, the 'ump' and 'ums' explanations MUST be in Indonesian.
+      - Use natural phrasing like "Masalahnya bukan di X, tapi di Y".
+      `;
+  } else {
+      languageInstruction = `LANGUAGE: Native English (USA/UK).`;
+  }
+
   const prompt = `
     ROLE: Product Engineer / Pseudo-Scientist
     
     CONTEXT:
     Big Idea: ${bigIdea.headline}
     Product: ${project.productName}
+    Target Audience Location: ${country}
+    ${languageInstruction}
     
     TASK:
     Define the UMP (Unique Mechanism of Problem) and UMS (Unique Mechanism of Solution).
@@ -192,17 +209,32 @@ export const generateMechanisms = async (project: ProjectContext, bigIdea: BigId
 
 export const generateHooks = async (project: ProjectContext, bigIdea: BigIdeaOption, mechanism: MechanismOption): Promise<GenResult<string[]>> => {
   const model = "gemini-2.5-flash";
+  const country = project.targetCountry || "USA";
+  const isIndo = country.toLowerCase().includes("indonesia");
+
+  let toneInstruction = "";
+  let referenceMedia = "Cosmopolitan, National Enquirer";
+  
+  if (isIndo) {
+      toneInstruction = `
+      LANGUAGE: Bahasa Indonesia (Bahasa Gaul / Social Media Slang).
+      - FORBIDDEN: "Anda", "Temukan", "Kami".
+      - USE: "Gue/Lo" (if fits brand), "Sumpah", "Ternyata", "Ini dia".
+      - STYLE: Clickbait titles like "Tribun News", "Detik", or viral TikTok captions.
+      `;
+      referenceMedia = "Lambe Turah, Tribun News Clickbait, Viral TikToks";
+  } else {
+      toneInstruction = `LANGUAGE: Native English (Casual, Punchy).`;
+  }
   
   const prompt = `
-    ROLE: Tabloid Editor / Direct Response Copywriter.
+    ROLE: Viral Social Media Editor / Direct Response Copywriter.
     
     TASK: Write 5 "Thumb-Stopping" Hooks based on:
     Big Idea: ${bigIdea.headline}
     Mechanism: ${mechanism.scientificPseudo} (${mechanism.ums})
     
-    SABRI SUBY INSTRUCTION:
-    Go to the "Gossip Magazine" rack (e.g., Cosmopolitan, National Enquirer).
-    Steal their headline structures. They are the masters of curiosity gaps.
+    REFERENCE STYLE: ${referenceMedia}
     
     RULES:
     1. Use "Shock & Awe".
@@ -210,8 +242,11 @@ export const generateHooks = async (project: ProjectContext, bigIdea: BigIdeaOpt
     3. Call out the "Enemy" or a "Hidden Danger".
     4. TONE: Urgent, slightly controversial, "Trashy but Irresistible".
     
+    ${toneInstruction}
+
     BAD HOOK: "Here is how to lose weight."
-    GOOD HOOK (Gossip Style): "The '3-Second Morning Ritual' Doctors Are Begging You To Stop Using."
+    GOOD HOOK (English): "The '3-Second Morning Ritual' Doctors Are Begging You To Stop Using."
+    GOOD HOOK (Indo): "Sumpah nyesel banget baru tau trik 3 detik ini sekarang."
     
     Output a simple JSON string array.
   `;
@@ -237,6 +272,7 @@ export const generateHooks = async (project: ProjectContext, bigIdea: BigIdeaOpt
 
 export const generateAngles = async (project: ProjectContext, personaName: string, personaMotivation: string): Promise<GenResult<any[]>> => {
   const model = "gemini-2.5-flash";
+  const country = project.targetCountry || "USA";
 
   // SYSTEM: Andromeda Strategy (Tier Selection & Prioritization)
   const prompt = `
@@ -246,7 +282,7 @@ export const generateAngles = async (project: ProjectContext, personaName: strin
     Product: ${project.productName}
     Persona: ${personaName}
     Deep Motivation: ${personaMotivation}
-    Target Country: ${project.targetCountry}
+    Target Country: ${country}
     
     TASK:
     Brainstorm 10 raw angles/hooks using these specific psychological frames:
@@ -263,7 +299,7 @@ export const generateAngles = async (project: ProjectContext, personaName: strin
     OUTPUT:
     Return ONLY the Top 3 High-Potential Insights (Ensure at least 1 is a NEGATIVE ANGLE).
     
-    *For ${project.targetCountry}: Ensure the angles fit the local culture.*
+    *Language Rule for ${country}: Write the 'headline' and 'hook' in the local language (e.g. Bahasa Indonesia for Indonesia) using natural marketing slang.*
   `;
 
   const response = await ai.models.generateContent({
