@@ -36,8 +36,11 @@ export const generateCreativeImage = async (
   const country = project.targetCountry || "USA";
   const lowerDesc = project.productDescription.toLowerCase();
   
-  const isService = lowerDesc.includes("studio") || lowerDesc.includes("service") || lowerDesc.includes("jasa") || lowerDesc.includes("photography") || lowerDesc.includes("clinic");
+  const isService = lowerDesc.includes("studio") || lowerDesc.includes("service") || lowerDesc.includes("jasa") || lowerDesc.includes("photography") || lowerDesc.includes("clinic") || lowerDesc.includes("consultant") || lowerDesc.includes("agency");
   
+  // LOGIC: Health vs Abstract Category Detection
+  const isHealth = /pain|body|skin|weight|muscle|joint|gut|brain|health|doctor|pill|supplement|acne|wrinkle|fat/i.test(project.productDescription + angle);
+
   // DYNAMIC CULTURAL INJECTION
   const culturePrompt = `
     Target Country: ${country}.
@@ -65,9 +68,17 @@ export const generateCreativeImage = async (
   
   const ugcEnhancers = "Shot on iPhone 15, raw photo, realistic skin texture, authentic amateur photography, slightly messy background, no bokeh, everything in focus (deep depth of field).";
 
-  // NEW: TRASH TIER FOR "UGLY ADS" - SABRI SUBY "NATIVE CONTENT" UPGRADE
-  // Updated with explicit exclusions/negative prompting simulation
-  const trashTierEnhancers = "Amateur phone photo. EXCLUDE: Professional lighting, bokeh, symmetry, perfect skin, studio setup, 4k, HDR, smooth textures. MAKE IT LOOK LIKE A MISTAKE. Low fidelity, authentic UGC. Shot on iPhone. Slight motion blur allowed. Bad lighting (overhead fluorescent or direct flash). Looks like a photo sent to a group chat. NO professional composition. The goal is 'Pattern Interrupt' - it must NOT look like an ad.";
+  // NEW: TRASH TIER FOR "UGLY ADS" - HARDER DEGRADATION
+  const trashTierEnhancers = `
+  CRITICAL: This must look like a terrible photo taken by accident.
+  - Add motion blur.
+  - Bad framing (cut off tops of heads or awkward angles).
+  - Harsh direct flash reflecting off skin (oily skin look).
+  - Low resolution texture (JPEG artifacts, slight grain).
+  - Background must be messy/cluttered (real life chaos).
+  - NOT AESTHETIC. NOT ARTISTIC. NO BOKEH.
+  - Looks like a raw photo sent to a group chat.
+  `;
 
   let finalPrompt = "";
   let appliedEnhancer = professionalEnhancers; 
@@ -115,7 +126,8 @@ export const generateCreativeImage = async (
     format === CreativeFormat.SOCIAL_COMMENT_STACK ||
     format === CreativeFormat.HANDHELD_TWEET ||
     format === CreativeFormat.STORY_POLL ||
-    format === CreativeFormat.EDUCATIONAL_RANT;
+    format === CreativeFormat.EDUCATIONAL_RANT ||
+    format === CreativeFormat.CHAT_CONVERSATION;
 
   // === METAPHOR MODE ===
   // Cek sederhana untuk kata kunci metafora
@@ -137,6 +149,16 @@ export const generateCreativeImage = async (
       
       if (format === CreativeFormat.MS_PAINT) {
           finalPrompt = `A crude, badly drawn MS Paint illustration related to ${project.productName}. Stick figures, comic sans text, bright primary colors, looks like a child or amateur drew it. Authentically bad internet meme style. ${SAFETY_GUIDELINES}`;
+      } else if (format === CreativeFormat.MEME) {
+          const memeText = angle.split(" ").slice(0, 6).join(" ").toUpperCase();
+          finalPrompt = `
+              A viral internet meme format.
+              Image content: ${visualScene}.
+              TEXT INSTRUCTION: The image MUST include the following text clearly written in standard Meme Font (White Impact font with black outline) at the top or bottom.
+              TEXT TO WRITE: "${memeText}".
+              Make the text large, legible, and perfectly spelled.
+              ${SAFETY_GUIDELINES}
+          `;
       } else if (format === CreativeFormat.UGLY_VISUAL) {
           finalPrompt = `A very low quality, cursed image vibe. ${subjectFocus}. ${technicalPrompt || visualScene}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
       } else {
@@ -149,6 +171,21 @@ export const generateCreativeImage = async (
       if (format === CreativeFormat.EDUCATIONAL_RANT) {
           // Green Screen Logic
           finalPrompt = `A person engaging with the camera, 'Green Screen' effect style. Background is a screenshot of a news article or a graph related to ${angle}. The person looks passionate/angry (ranting). Native TikTok/Reels aesthetic. UI overlay: "Stop doing this!". ${ugcEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
+      } else if (format === CreativeFormat.CHAT_CONVERSATION) {
+          const isIndo = project.targetCountry?.toLowerCase().includes("indonesia");
+          const appStyle = isIndo ? "WhatsApp UI (Green bubbles)" : "iMessage UI (Blue bubbles)";
+          const sender = isIndo ? "Sayang" : "Crush"; // Contextual sender name
+
+          finalPrompt = `
+            A close-up photo of a hand holding a smartphone displaying a chat conversation.
+            App Style: ${appStyle}.
+            Sender Name: "${sender}".
+            Last Message Bubble: Visible text saying "${angle}".
+            Background: Blurry motion (walking on street or inside car).
+            Lighting: Screen glow on thumb.
+            Make the UI look 100% authentic to the app.
+            ${appliedEnhancer} ${SAFETY_GUIDELINES}
+          `;
       } else {
         // Updated Story Logic: STRICT adherence to visualScene action
         // 1. Determine "Candid Environment"
@@ -228,14 +265,26 @@ export const generateCreativeImage = async (
   }
   // NEW: MECHANISM X-RAY VISUAL
   else if (format === CreativeFormat.MECHANISM_XRAY) {
-    finalPrompt = `
-      A scientific or medical illustration style (clean, 3D render or cross-section diagram).
-      Subject: Visualizing the "${angle}" (The internal root cause/UMP).
-      Detail: Show the biological or mechanical failure point clearly inside the body/object.
-      Labeling: Add a red arrow pointing to the problem area.
-      Vibe: Educational, shocking discovery, "The Hidden Enemy".
-      ${SAFETY_GUIDELINES}
-    `;
+    if (isHealth) {
+         finalPrompt = `
+          A scientific or medical illustration style (clean, 3D render or cross-section diagram).
+          Subject: Visualizing the "${angle}" (The internal root cause/UMP).
+          Detail: Show the biological or mechanical failure point clearly inside the body/object.
+          Labeling: Add a red arrow pointing to the problem area.
+          Vibe: Educational, shocking discovery, "The Hidden Enemy".
+          ${SAFETY_GUIDELINES}
+        `;
+    } else {
+        finalPrompt = `
+          A clean, high-contrast schematic diagram or flowchart visualized as a 3D hologram or blueprint.
+          Subject: Visualizing the "System Failure" in the user's current approach to ${angle}.
+          Visuals: Use icons, connecting lines, and error nodes (red X).
+          Style: Tech-minimalist or architectural blueprint. Dark mode aesthetic.
+          Metaphor: A broken map, a disconnected circuit, or a maze with no exit.
+          NO human anatomy.
+          ${SAFETY_GUIDELINES}
+        `;
+    }
   }
 
   // === OTHER FORMATS ===
