@@ -1,6 +1,6 @@
 
 import { Type } from "@google/genai";
-import { ProjectContext, CreativeFormat, AdCopy, CreativeConcept, GenResult, StoryOption, BigIdeaOption, MechanismOption } from "../../types";
+import { ProjectContext, CreativeFormat, AdCopy, CreativeConcept, GenResult, StoryOption, BigIdeaOption, MechanismOption, MarketAwareness } from "../../types";
 import { ai, extractJSON } from "./client";
 
 export const generateSalesLetter = async (
@@ -84,6 +84,12 @@ export const generateCreativeConcept = async (
     
     **TASK:**
     Create a concept that VIOLATES the expectations of the feed.
+
+    **VISUAL INSTRUCTION (MICRO-MOMENTS):**
+    If the hook is about a habit, ritual, or anxiety, describe the SPECIFIC MICRO-MOMENT.
+    Bad: "A sad person."
+    Good: "A POV shot of looking down at a bathroom scale seeing the number, toes curled in anxiety."
+    Good: "Checking banking app at 3AM with one eye open."
     
     **OUTPUT REQUIREMENTS (JSON):**
 
@@ -134,17 +140,65 @@ export const generateAdCopy = async (
   persona: any, 
   concept: CreativeConcept,
   format?: CreativeFormat,
-  isHVCOFlow: boolean = false
+  isHVCOFlow: boolean = false,
+  mechanism?: MechanismOption
 ): Promise<GenResult<AdCopy>> => {
   const model = "gemini-2.5-flash";
   const country = project.targetCountry || "USA";
   const isIndo = country.toLowerCase().includes("indonesia");
 
+  // 1. INFORMATION GAP LOGIC (Stage-Based Copy)
+  const isUnaware = project.marketAwareness === MarketAwareness.UNAWARE || project.marketAwareness === MarketAwareness.PROBLEM_AWARE;
+  let productContext = "";
+
+  if (isUnaware) {
+      // HIDE PRODUCT for Unaware/Problem Aware
+      productContext = `
+      CONTEXT: The user is in PAIN but does NOT know the solution exists.
+      FORBIDDEN: Do NOT mention "${project.productName}" in the Hook or Body. Do NOT mention the Offer yet.
+      FOCUS: Describe the symptoms, the frustration of failed attempts, and the "I realized" moment.
+      GOAL: Get them to say "That's exactly how I feel" (Identification).
+      `;
+  } else {
+      // SHOW PRODUCT for Solution/Product Aware
+      productContext = `
+      PRODUCT: ${project.productName}
+      DETAILS: ${project.productDescription}
+      OFFER: ${project.offer}
+      GOAL: Persuade them to buy now using scarcity and benefits.
+      `;
+  }
+
+  // 2. STRUCTURE LOGIC (Unaware Story)
+  let structureInstruction = "";
+  if (isUnaware) {
+      structureInstruction = `
+      STRUCTURE (Strictly Follow):
+      1. THE HOOK: A raw, specific admission or observation (e.g. "I almost fired my best employee yesterday").
+      2. IDENTIFICATION: Describe the visceral feeling of the problem. Use sensory details.
+      3. AMPLIFICATION: List 2-3 things they tried that FAILED.
+      4. THE TURN: A subtle hint that a "New Mechanism" exists (without naming the product yet).
+      5. CTA: "${project.offer}" (Only at the very end).
+      `;
+  }
+
+  // 3. MECHANISM INTEGRATION
+  let mechanismInstruction = "";
+  if (mechanism) {
+      mechanismInstruction = `
+      CORE ARGUMENT (THE LOGIC):
+      You must explain the failure of other solutions using this UMP (Unique Mechanism of Problem): "${mechanism.ump}".
+      Then, introduce the solution using this UMS (Unique Mechanism of Solution): "${mechanism.ums}".
+      Use the pseudo-scientific name: "${mechanism.scientificPseudo}".
+      `;
+  }
+
   // DETECT LEAD MAGNET / HVCO
-  // We use the explicit flag from App.tsx OR the visual cues.
   const isHVCO = isHVCOFlow || format === CreativeFormat.LEAD_MAGNET_3D || concept.visualScene.includes("Book") || concept.visualScene.includes("Report");
 
   let specialInstruction = "";
+  let toneInstruction = "";
+
   if (isHVCO) {
       specialInstruction = `
         MODE: SELLING THE CLICK (Lead Magnet).
@@ -157,38 +211,46 @@ export const generateAdCopy = async (
         
         Create 3-5 Curiosity-Dripping Bullets based on the Hook: "${concept.hookComponent || 'Download Now'}".
       `;
-  }
-
-  // SYSTEM: TONE CALIBRATION (FEW-SHOT PROMPTING)
-  let toneInstruction = "";
-  
-  if (project.brandCopyExamples && project.brandCopyExamples.length > 10) {
-      // FEW-SHOT MODE (HIGH QUALITY)
+      
+      // 4. HVCO ANTI-MARKETING TONE
       toneInstruction = `
-        **CRITICAL TONE CALIBRATION (MIMIC THIS STYLE EXACTLY):**
-        I have provided examples of the client's winning copy below. 
-        Study the sentence length, slang usage, capitalization, and emotional density.
-        Your output MUST sound like it was written by the same person.
-        
-        === CLIENT EXAMPLES START ===
-        ${project.brandCopyExamples}
-        === CLIENT EXAMPLES END ===
-        
-        Do NOT revert to generic AI defaults. Use the examples above as your "Style Source of Truth".
+        TONE: Whistleblower / Insider / "The thing they don't want you to know".
+        Do NOT sound like a marketer. Sound like a friend warning another friend.
+        Use phrases like:
+        - "Stop doing X immediately."
+        - "The lie we've been told about Y."
+        - "I found the missing document."
       `;
   } else {
-      // ZERO-SHOT FALLBACK (LOWER QUALITY)
-      if (isIndo) {
+      // STANDARD TONE CALIBRATION
+      if (project.brandCopyExamples && project.brandCopyExamples.length > 10) {
+          // FEW-SHOT MODE (HIGH QUALITY)
           toneInstruction = `
-            STYLE: "Bahasa Gaul" (Authentic Indonesian Social Media Slang).
-            ANTI-ROBOT RULES:
-            1. HARAM WORDS (Do NOT use): "Sobat", "Kawan", "Halo", "Apakah", "Solusi".
-            2. USE PARTICLES: "sih", "dong", "deh", "kan", "banget", "malah", "kok".
-            3. PRONOUNS: Use "Aku/Kamu" (Soft) or "Gue/Lo" (Edgy). Never "Anda".
-            4. TONE: Like a best friend gossiping or ranting.
+            **CRITICAL TONE CALIBRATION (MIMIC THIS STYLE EXACTLY):**
+            I have provided examples of the client's winning copy below. 
+            Study the sentence length, slang usage, capitalization, and emotional density.
+            Your output MUST sound like it was written by the same person.
+            
+            === CLIENT EXAMPLES START ===
+            ${project.brandCopyExamples}
+            === CLIENT EXAMPLES END ===
+            
+            Do NOT revert to generic AI defaults. Use the examples above as your "Style Source of Truth".
           `;
       } else {
-          toneInstruction = `STYLE: Conversational, Authentic, Native Speaker level.`;
+          // ZERO-SHOT FALLBACK (LOWER QUALITY)
+          if (isIndo) {
+              toneInstruction = `
+                STYLE: "Bahasa Gaul" (Authentic Indonesian Social Media Slang).
+                ANTI-ROBOT RULES:
+                1. HARAM WORDS (Do NOT use): "Sobat", "Kawan", "Halo", "Apakah", "Solusi".
+                2. USE PARTICLES: "sih", "dong", "deh", "kan", "banget", "malah", "kok".
+                3. PRONOUNS: Use "Aku/Kamu" (Soft) or "Gue/Lo" (Edgy). Never "Anda".
+                4. TONE: Like a best friend gossiping or ranting.
+              `;
+          } else {
+              toneInstruction = `STYLE: Conversational, Authentic, Native Speaker level.`;
+          }
       }
   }
 
@@ -202,10 +264,11 @@ export const generateAdCopy = async (
     2. Use Bullet Points (•) or Emojis (✅) to break up benefits.
     3. The first sentence must be a "Velcro Hook" (Short, punchy).
 
-    **MANDATORY INSTRUCTION:**
+    **MANDATORY INSTRUCTIONS:**
     ${toneInstruction}
     TARGET COUNTRY: ${country}.
     ${specialInstruction}
+    ${structureInstruction}
 
     **THE HEADLINE CONTEXT LIBRARY (RULES):**
     1.  **Assume No One Knows You:** Treat the audience as COLD. Do not be vague.
@@ -215,10 +278,10 @@ export const generateAdCopy = async (
     5.  **Visual Hierarchy:** The headline MUST match the image scene described below.
 
     **STRATEGY CONTEXT:**
-    Product Name: ${project.productName}
-    Product Description: ${project.productDescription}
-    Offer: ${project.offer}
+    ${productContext}
     Target: ${persona.name}
+    
+    ${mechanismInstruction}
     
     **CONGRUENCE CONTEXT (IMAGE SCENE):**
     Visual Scene: "${concept.visualScene}"

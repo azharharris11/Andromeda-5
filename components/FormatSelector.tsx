@@ -66,7 +66,7 @@ const FormatSelector: React.FC<FormatSelectorProps> = ({ isOpen, onClose, select
                                         <p className="text-[10px] text-slate-500 mt-1 italic">{desc}</p>
                                     </div>
                                     <div className="grid grid-cols-1 gap-2 flex-1 content-start">
-                                        {formats.map(fmt => (
+                                        {(formats as CreativeFormat[]).map(fmt => (
                                             <button 
                                                 key={fmt} 
                                                 onClick={() => onSelectFormat(fmt)} 

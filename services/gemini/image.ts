@@ -1,4 +1,3 @@
-
 import { ProjectContext, CreativeFormat, GenResult, MarketAwareness } from "../../types";
 import { ai } from "./client";
 
@@ -73,16 +72,30 @@ export const generateCreativeImage = async (
   let finalPrompt = "";
   let appliedEnhancer = professionalEnhancers; 
   
-  // === LOGIC UPGRADE: UNAWARE STAGE PRODUCT LEAKAGE PREVENTION ===
-  const isHiddenPhase = project.marketAwareness === MarketAwareness.UNAWARE || project.marketAwareness === MarketAwareness.PROBLEM_AWARE;
-  let contextInjection = "";
+  // === LOGIC UPGRADE: STAGE-BASED VISUAL EVOLUTION ===
+  let subjectFocus = "";
 
-  if (isHiddenPhase) {
-      // FOKUS PADA MASALAH/GEJALA, BUKAN PRODUK
-      contextInjection = `(Context: Subject is experiencing the PROBLEM of ${angle}. Do NOT show any branded products, boxes, or logos. This is a generic life scene.)`;
-  } else {
-      // BARU TAMPILKAN PRODUK
-      contextInjection = `(Context: Product is ${project.productName} - ${project.productDescription}. Headline to match: "${angle}").`;
+  switch (project.marketAwareness) {
+    case MarketAwareness.UNAWARE:
+        // Fokus: "Ritual" atau "Gejala"
+        subjectFocus = `SUBJECT: A specific, raw life moment showing the PAIN/SYMPTOM. NO PRODUCT BRANDING. Example: A person rubbing their temple in a dark room, or staring at a ceiling at 3AM. Focus on the 'Ritual' of the problem.`;
+        break;
+    case MarketAwareness.PROBLEM_AWARE:
+        // Fokus: "Solusi Gagal"
+        subjectFocus = `SUBJECT: The "Graveyard of Failed Attempts". Show the clutter of old solutions that didn't work (e.g. empty bottles, unused equipment, pile of bills). Frustrated mood. NO NEW PRODUCT YET.`;
+        break;
+    case MarketAwareness.SOLUTION_AWARE:
+        // Fokus: "Mekanisme Baru"
+        subjectFocus = `SUBJECT: A comparative visual or "Mechanism" visualization. Old Way vs New Way. Side-by-side comparison or split screen context. Product can be present as the 'New Way'.`;
+        break;
+    case MarketAwareness.PRODUCT_AWARE:
+    case MarketAwareness.MOST_AWARE:
+        // Fokus: "Offer & Produk"
+        subjectFocus = `SUBJECT: The Product Hero Shot. Highlighting the OFFER (e.g. "Buy 2 Get 1"). Show the full bundle stack clearly. Highlighting value and scarcity.`;
+        break;
+    default:
+        // Fallback
+        subjectFocus = `SUBJECT: High context visual related to ${angle}.`;
   }
 
   // 1. UGLY / PATTERN INTERRUPT LOGIC
@@ -102,7 +115,20 @@ export const generateCreativeImage = async (
     format === CreativeFormat.SOCIAL_COMMENT_STACK ||
     format === CreativeFormat.HANDHELD_TWEET ||
     format === CreativeFormat.STORY_POLL ||
-    format === CreativeFormat.EDUCATIONAL_RANT; // Added here for UGC base
+    format === CreativeFormat.EDUCATIONAL_RANT;
+
+  // === METAPHOR MODE ===
+  // Cek sederhana untuk kata kunci metafora
+  const isMetaphor = /battery|engine|fuel|prison|trap|key|lock|magnet|chain|anchor|leaking|drain|shield|armor|bridge|monster|shadow|cliff|mountain|broken|repair/i.test(angle);
+  let metaphorInstruction = "";
+  
+  if (isMetaphor && !isUglyFormat && !isNativeStory && format !== CreativeFormat.LEAD_MAGNET_3D) {
+      metaphorInstruction = ` 
+        STYLE: Surrealist/Editorial Illustration or High-Concept Photography. 
+        Depict the concept of "${angle}" as a VISUAL METAPHOR. 
+        Do not show a literal human unless interacting with the metaphor. Show the object/symbol representing the struggle.
+      `;
+  }
 
   // === LOGIC BRANCHING ===
 
@@ -112,9 +138,9 @@ export const generateCreativeImage = async (
       if (format === CreativeFormat.MS_PAINT) {
           finalPrompt = `A crude, badly drawn MS Paint illustration related to ${project.productName}. Stick figures, comic sans text, bright primary colors, looks like a child or amateur drew it. Authentically bad internet meme style. ${SAFETY_GUIDELINES}`;
       } else if (format === CreativeFormat.UGLY_VISUAL) {
-          finalPrompt = `A very low quality, cursed image vibe. ${technicalPrompt || visualScene}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
+          finalPrompt = `A very low quality, cursed image vibe. ${subjectFocus}. ${technicalPrompt || visualScene}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
       } else {
-          finalPrompt = `${technicalPrompt}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
+          finalPrompt = `${subjectFocus}. ${technicalPrompt}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
       }
   }
   else if (isNativeStory) {
@@ -233,57 +259,44 @@ export const generateCreativeImage = async (
       finalPrompt = `${technicalPrompt}. ${leadMagnetInstruction} ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
   }
   else if (isService) {
-      finalPrompt = `${contextInjection} ${technicalPrompt}. ${culturePrompt} ${moodPrompt} ${appliedEnhancer} ${SAFETY_GUIDELINES}. (Note: This is a service, do not show a retail box. Show the person experiencing the result).`;
+      finalPrompt = `${subjectFocus}. ${technicalPrompt}. ${culturePrompt} ${moodPrompt} ${appliedEnhancer} ${SAFETY_GUIDELINES}. (Note: This is a service, do not show a retail box. Show the person experiencing the result).`;
   }
   else {
-     if (technicalPrompt && technicalPrompt.length > 20) {
-         finalPrompt = `${contextInjection} ${technicalPrompt}. ${leadMagnetInstruction} ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
-     } else {
-         finalPrompt = `${contextInjection} ${visualScene}. Style: ${visualStyle || getRandomStyle()}. ${leadMagnetInstruction} ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
-     }
+      // Default
+      finalPrompt = `${subjectFocus}. ${technicalPrompt}. ${culturePrompt} ${moodPrompt} ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
   }
 
-  const parts: any[] = [{ text: finalPrompt }];
-  
-  if (referenceImageBase64) {
-      const base64Data = referenceImageBase64.split(',')[1] || referenceImageBase64;
-      parts.unshift({
-          inlineData: { mimeType: "image/png", data: base64Data }
-      });
-      parts.push({ text: "Use this image as a strict character/style reference. Maintain the same person/environment but change the pose/action as described." });
-  } 
-  else if (project.productReferenceImage) {
-      const base64Data = project.productReferenceImage.split(',')[1] || project.productReferenceImage;
-      parts.unshift({
-          inlineData: { mimeType: "image/png", data: base64Data }
-      });
-      parts.push({ text: "Use the product/subject in the provided image as the reference. Maintain brand colors and visual identity." });
+  // Append Metaphor Instruction if active
+  if (metaphorInstruction) {
+      finalPrompt += metaphorInstruction;
   }
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: { parts },
-      config: { imageConfig: { aspectRatio: aspectRatio === "1:1" ? "1:1" : "9:16" } }
-    });
-
-    let imageUrl: string | null = null;
-    if (response.candidates && response.candidates[0].content.parts) {
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData) {
-                imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-                break;
-            }
+      // Generate Image
+      const response = await ai.models.generateContent({
+        model,
+        contents: {
+           parts: [{ text: finalPrompt }]
+        },
+        config: {
+           imageConfig: { aspectRatio: aspectRatio as any } 
         }
-    }
-    return {
-      data: imageUrl,
-      inputTokens: response.usageMetadata?.promptTokenCount || 0,
-      outputTokens: response.usageMetadata?.candidatesTokenCount || 0
-    };
-  } catch (error) {
-    console.error("Image Gen Error", error);
-    return { data: null, inputTokens: 0, outputTokens: 0 };
+      });
+      
+      // Extract Image URL (Base64)
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+          if (part.inlineData) {
+              return { 
+                  data: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`, 
+                  inputTokens: 0, 
+                  outputTokens: 0 
+              };
+          }
+      }
+      return { data: null, inputTokens: 0, outputTokens: 0 };
+  } catch (e) {
+      console.error("Image Generation Failed", e);
+      return { data: null, inputTokens: 0, outputTokens: 0 };
   }
 };
 
@@ -295,48 +308,48 @@ export const generateCarouselSlides = async (
   visualStyle: string,
   technicalPrompt: string
 ): Promise<GenResult<string[]>> => {
-    const slides: string[] = [];
-    let totalInput = 0;
-    let totalOutput = 0;
-    
-    let anchorImage: string | undefined = undefined;
+  const slides: string[] = [];
+  let totalInput = 0;
+  let totalOutput = 0;
+  // Use a generic persona name since it's not passed, visual style handles the look.
+  const personaName = "Audience"; 
 
-    for (let i = 1; i <= 3; i++) {
-        let slidePrompt = "";
-        
-        if (format === CreativeFormat.CAROUSEL_REAL_STORY) {
-             if (i === 1) slidePrompt = `Slide 1 (The Hook): A candid, slightly imperfect UGC-style photo showing the PROBLEM or PAIN POINT. The subject looks frustrated or tired. Context: ${angle}. Style: Handheld camera.`;
-             if (i === 2) slidePrompt = `Slide 2 (The Turn): The SAME subject discovers ${project.productName}. A close up shot of the product/service in use. Natural lighting.`;
-             if (i === 3) slidePrompt = `Slide 3 (The Result): The SAME subject looks relieved and happy. A glowing transformation result. Text overlay implied: "Saved my life".`;
-        } 
-        else if (format === CreativeFormat.CAROUSEL_EDUCATIONAL) {
-             if (i === 1) slidePrompt = `Slide 1 (Title Card): Minimalist background with plenty of negative space for text. Visual icon representing the topic: ${angle}.`;
-             if (i === 2) slidePrompt = `Slide 2 (The Method): A diagram or clear photo demonstrating the 'How To' aspect of the solution. Keep style consistent.`;
-             if (i === 3) slidePrompt = `Slide 3 (Summary): A checklist visual or a final result shot showing success.`;
-        }
-        else {
-            if (i === 1) slidePrompt = `${technicalPrompt}. Slide 1: The Hook/Problem. High tension visual.`;
-            if (i === 2) slidePrompt = `${technicalPrompt}. Slide 2: The Solution/Process. Detailed macro shot. Keep visual identity.`;
-            if (i === 3) slidePrompt = `${technicalPrompt}. Slide 3: The Result/CTA. Happy resolution.`;
-        }
+  // Slide 1: Hook
+  const r1 = await generateCreativeImage(
+      project, personaName, angle, format, 
+      visualScene, visualStyle, 
+      `${technicalPrompt} -- Slide 1: The Hook/Title Card. Visual Focus: The Problem/Concept.`, 
+      "1:1"
+  );
+  if (r1.data) slides.push(r1.data);
+  totalInput += r1.inputTokens;
+  totalOutput += r1.outputTokens;
 
-        // Add character consistency text reinforcement
-        if (i > 1) {
-             slidePrompt += " IMPORTANT: MAINTAIN CHARACTER CONSISTENCY. Same subject as Slide 1. Same hair, same clothes.";
-        }
+  // Slide 2: Value
+  const r2 = await generateCreativeImage(
+      project, personaName, angle, format, 
+      visualScene, visualStyle, 
+      `${technicalPrompt} -- Slide 2: The Mechanism/Process. Visual Focus: How it works.`, 
+      "1:1"
+  );
+  if (r2.data) slides.push(r2.data);
+  totalInput += r2.inputTokens;
+  totalOutput += r2.outputTokens;
 
-        const result = await generateCreativeImage(
-            project, "User", angle, format, visualScene, visualStyle, slidePrompt, "1:1",
-            anchorImage 
-        );
-        
-        if (result.data) {
-            slides.push(result.data);
-            if (i === 1) anchorImage = result.data; 
-        }
-        totalInput += result.inputTokens;
-        totalOutput += result.outputTokens;
-    }
+  // Slide 3: CTA
+  const r3 = await generateCreativeImage(
+      project, personaName, angle, format, 
+      visualScene, visualStyle, 
+      `${technicalPrompt} -- Slide 3: The Payoff/CTA. Visual Focus: Result/Product.`, 
+      "1:1"
+  );
+  if (r3.data) slides.push(r3.data);
+  totalInput += r3.inputTokens;
+  totalOutput += r3.outputTokens;
 
-    return { data: slides, inputTokens: totalInput, outputTokens: totalOutput };
+  return {
+      data: slides,
+      inputTokens: totalInput,
+      outputTokens: totalOutput
+  };
 };

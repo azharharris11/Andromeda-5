@@ -237,7 +237,14 @@ const App = () => {
                  visualConcept = conceptResult.data;
 
                  updateNode(node.id, { description: "Copywriter: Drafting..." });
-                 const copyResult = await generateAdCopy(projectContextForGen, parentNode.meta || { name: personaToUse }, visualConcept, fmt, isHVCOFlow);
+                 const copyResult = await generateAdCopy(
+                     projectContextForGen, 
+                     parentNode.meta || { name: personaToUse }, 
+                     visualConcept, 
+                     fmt, 
+                     isHVCOFlow, 
+                     parentNode.mechanismData
+                 );
                  accumulatedInput += copyResult.inputTokens;
                  accumulatedOutput += copyResult.outputTokens;
                  finalAdCopy = copyResult.data;
@@ -260,7 +267,14 @@ const App = () => {
                      accumulatedOutput += conceptResult.outputTokens;
                      visualConcept = conceptResult.data;
                      
-                     const copyResult = await generateAdCopy(projectContextForGen, { name: personaToUse }, visualConcept, fmt, isHVCOFlow);
+                     const copyResult = await generateAdCopy(
+                         projectContextForGen, 
+                         { name: personaToUse }, 
+                         visualConcept, 
+                         fmt, 
+                         isHVCOFlow, 
+                         parentNode.mechanismData
+                     );
                      accumulatedInput += copyResult.inputTokens;
                      accumulatedOutput += copyResult.outputTokens;
                      finalAdCopy = copyResult.data;
