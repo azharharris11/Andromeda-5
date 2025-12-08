@@ -1,4 +1,3 @@
-
 import { ProjectContext, CreativeFormat, GenResult, MarketAwareness } from "../../types";
 import { ai } from "./client";
 
@@ -20,6 +19,86 @@ const VISUAL_STYLES = [
 ];
 
 const getRandomStyle = () => VISUAL_STYLES[Math.floor(Math.random() * VISUAL_STYLES.length)];
+
+// Helper to generate context-aware text instructions based on format
+const generateTextInstruction = (format: CreativeFormat, angle: string, project: ProjectContext): string => {
+    const productName = project.productName;
+    
+    switch (format) {
+        case CreativeFormat.CHAT_CONVERSATION:
+            return `
+            TEXT COPY INSTRUCTION:
+            - CONTEXT: A private text message between friends/partners.
+            - POV: Sender (Friend/Partner).
+            - TONE: Intimate, casual, slang allowed, lower case.
+            - CONTENT: Rewrite "${angle}" as a text message.
+              (e.g., Instead of "Cure Back Pain", write "Babe, my back is finally better omg.")
+            `;
+        case CreativeFormat.TWITTER_REPOST:
+        case CreativeFormat.HANDHELD_TWEET:
+            return `
+            TEXT COPY INSTRUCTION:
+            - CONTEXT: A viral tweet or hot take.
+            - POV: User (First Person "I").
+            - TONE: Opinionated, slightly controversial, "Twitter Voice".
+            - CONTENT: Rewrite "${angle}" as a short tweet.
+              (e.g., "Unpopular opinion: [Angle] is actually true.")
+            `;
+        case CreativeFormat.PHONE_NOTES:
+            return `
+            TEXT COPY INSTRUCTION:
+            - CONTEXT: A personal "To-Do" list or "realization" diary in Apple Notes.
+            - POV: User (First Person "I").
+            - TONE: Raw, unfiltered, bullet points.
+            - CONTENT: Title: "${angle}". Body: 3 short bullet points expanding on it.
+            `;
+        case CreativeFormat.IG_STORY_TEXT:
+        case CreativeFormat.LONG_TEXT:
+             return `
+            TEXT COPY INSTRUCTION:
+            - CONTEXT: Instagram Story text overlay (internal monologue).
+            - POV: User (First Person "I").
+            - TONE: Vulnerable, storytelling, "real talk".
+            - CONTENT: A short paragraph (2-3 sentences) reflecting on "${angle}".
+              (e.g., "I used to think X, but then I realized Y...")
+            `;
+        case CreativeFormat.STICKY_NOTE_REALISM:
+            return `
+            TEXT COPY INSTRUCTION:
+            - CONTEXT: A handwritten reminder to self.
+            - POV: Self.
+            - TONE: Urgent, short, imperative.
+            - CONTENT: "Don't forget: ${angle}" or "Rule #1: ${angle}".
+            `;
+        case CreativeFormat.MEME:
+            return `
+            TEXT COPY INSTRUCTION:
+            - CONTEXT: Top/Bottom Text Impact Font Meme.
+            - POV: Third Person Relatable ("When you...").
+            - TONE: Funny, ironic.
+            - CONTENT: Top: "WHEN YOU..." Bottom: "...${angle}".
+            `;
+        case CreativeFormat.REMINDER_NOTIF:
+        case CreativeFormat.DM_NOTIFICATION:
+            return `
+            TEXT COPY INSTRUCTION:
+            - CONTEXT: System Notification or Lock Screen Alert.
+            - POV: App/System addressing User ("You").
+            - TONE: Urgent, concise.
+            - CONTENT: "Reminder: ${angle}" or "New Message: ${angle}".
+            `;
+        case CreativeFormat.SOCIAL_COMMENT_STACK:
+            return `
+            TEXT COPY INSTRUCTION:
+            - CONTEXT: Social media comments section.
+            - POV: Multiple Users.
+            - TONE: Excited, validating, curious.
+            - CONTENT: 2-3 bubbles. "Does this actually work?", "Yes! I tried it for ${angle} and it's crazy."
+            `;
+        default:
+            return `TEXT COPY INSTRUCTION: Include the text "${angle}" clearly in the image.`;
+    }
+};
 
 export const generateCreativeImage = async (
   project: ProjectContext,
@@ -89,24 +168,19 @@ export const generateCreativeImage = async (
 
   switch (project.marketAwareness) {
     case MarketAwareness.UNAWARE:
-        // Fokus: "Ritual" atau "Gejala"
         subjectFocus = `SUBJECT: A specific, raw life moment showing the PAIN/SYMPTOM. NO PRODUCT BRANDING. Example: A person rubbing their temple in a dark room, or staring at a ceiling at 3AM. Focus on the 'Ritual' of the problem.`;
         break;
     case MarketAwareness.PROBLEM_AWARE:
-        // Fokus: "Solusi Gagal"
         subjectFocus = `SUBJECT: The "Graveyard of Failed Attempts". Show the clutter of old solutions that didn't work (e.g. empty bottles, unused equipment, pile of bills). Frustrated mood. NO NEW PRODUCT YET.`;
         break;
     case MarketAwareness.SOLUTION_AWARE:
-        // Fokus: "Mekanisme Baru"
         subjectFocus = `SUBJECT: A comparative visual or "Mechanism" visualization. Old Way vs New Way. Side-by-side comparison or split screen context. Product can be present as the 'New Way'.`;
         break;
     case MarketAwareness.PRODUCT_AWARE:
     case MarketAwareness.MOST_AWARE:
-        // Fokus: "Offer & Produk"
         subjectFocus = `SUBJECT: The Product Hero Shot. Highlighting the OFFER (e.g. "Buy 2 Get 1"). Show the full bundle stack clearly. Highlighting value and scarcity.`;
         break;
     default:
-        // Fallback
         subjectFocus = `SUBJECT: High context visual related to ${angle}.`;
   }
 
@@ -129,10 +203,11 @@ export const generateCreativeImage = async (
     format === CreativeFormat.STORY_POLL ||
     format === CreativeFormat.EDUCATIONAL_RANT ||
     format === CreativeFormat.CHAT_CONVERSATION ||
-    format === CreativeFormat.IG_STORY_TEXT;
+    format === CreativeFormat.IG_STORY_TEXT ||
+    format === CreativeFormat.DM_NOTIFICATION ||
+    format === CreativeFormat.REMINDER_NOTIF;
 
   // === METAPHOR MODE ===
-  // Cek sederhana untuk kata kunci metafora
   const isMetaphor = /battery|engine|fuel|prison|trap|key|lock|magnet|chain|anchor|leaking|drain|shield|armor|bridge|monster|shadow|cliff|mountain|broken|repair/i.test(angle);
   let metaphorInstruction = "";
   
@@ -144,6 +219,10 @@ export const generateCreativeImage = async (
       `;
   }
 
+  // === CONTEXTUAL COPY INSTRUCTION ===
+  // This generates the specific text prompt based on format POV
+  const textCopyInstruction = generateTextInstruction(format, angle, project);
+
   // === LOGIC BRANCHING ===
 
   if (isUglyFormat) {
@@ -152,17 +231,24 @@ export const generateCreativeImage = async (
       if (format === CreativeFormat.MS_PAINT) {
           finalPrompt = `A crude, badly drawn MS Paint illustration related to ${project.productName}. Stick figures, comic sans text, bright primary colors, looks like a child or amateur drew it. Authentically bad internet meme style. ${SAFETY_GUIDELINES}`;
       } else if (format === CreativeFormat.MEME) {
-          const memeText = angle.split(" ").slice(0, 6).join(" ").toUpperCase();
           finalPrompt = `
               A viral internet meme format.
               Image content: ${visualScene}.
-              TEXT INSTRUCTION: The image MUST include the following text clearly written in standard Meme Font (White Impact font with black outline) at the top or bottom.
-              TEXT TO WRITE: "${memeText}".
-              Make the text large, legible, and perfectly spelled.
+              ${textCopyInstruction}
+              Ensure the text is large, legible Impact Font (White with Black Outline), and perfectly spelled.
               ${SAFETY_GUIDELINES}
           `;
       } else if (format === CreativeFormat.UGLY_VISUAL) {
           finalPrompt = `A very low quality, cursed image vibe. ${subjectFocus}. ${technicalPrompt || visualScene}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
+      } else if (format === CreativeFormat.REDDIT_THREAD) {
+          finalPrompt = `
+            A screenshot of a Reddit thread (Dark Mode). 
+            Title: "${angle}". 
+            Subreddit: r/${isHealth ? 'health' : 'AskReddit'}. 
+            UI: Upvote buttons, comments. 
+            Vibe: Authentic screen capture.
+            ${SAFETY_GUIDELINES}
+          `;
       } else {
           finalPrompt = `${subjectFocus}. ${technicalPrompt}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
       }
@@ -176,20 +262,19 @@ export const generateCreativeImage = async (
       } else if (format === CreativeFormat.CHAT_CONVERSATION) {
           const isIndo = project.targetCountry?.toLowerCase().includes("indonesia");
           const appStyle = isIndo ? "WhatsApp UI (Green bubbles)" : "iMessage UI (Blue bubbles)";
-          const sender = isIndo ? "Sayang" : "Crush"; // Contextual sender name
+          const sender = isIndo ? "Sayang" : "Crush";
 
           finalPrompt = `
             A close-up photo of a hand holding a smartphone displaying a chat conversation.
             App Style: ${appStyle}.
             Sender Name: "${sender}".
-            Last Message Bubble: Visible text saying "${angle}".
+            ${textCopyInstruction}
             Background: Blurry motion (walking on street or inside car).
             Lighting: Screen glow on thumb.
             Make the UI look 100% authentic to the app.
             ${appliedEnhancer} ${SAFETY_GUIDELINES}
           `;
       } else if (format === CreativeFormat.IG_STORY_TEXT) {
-          // NEW: IG Story Text Overlay Logic (Contextual Long Copy)
           finalPrompt = `
             A realistic vertical photo formatted for Instagram Story.
             VISUAL: ${visualScene}. A candid, authentic shot of a person (Persona: ${personaName}) experiencing the moment described in the text.
@@ -197,13 +282,29 @@ export const generateCreativeImage = async (
             NEGATIVE SPACE: Ensure there is ample empty space (sky, wall, or ceiling) for text placement.
             OVERLAY INSTRUCTION:
             Superimpose a realistic "Instagram Text Bubble" or a "White Text Block with Rounded Corners".
-            TEXT CONTENT: The text inside must be a short paragraph (3-4 sentences) that expands on this idea: "${angle}". 
-            It should read like an internal monologue or a realization diary entry.
+            ${textCopyInstruction}
             Make the text sharp, legible, and central to the composition.
             ${culturePrompt} ${moodPrompt} ${ugcEnhancers} ${SAFETY_GUIDELINES}
           `;
+      } else if (format === CreativeFormat.SOCIAL_COMMENT_STACK) {
+          finalPrompt = `
+            A screenshot of social media comments overlaid on a blurred background.
+            ${textCopyInstruction}
+            UI: Profile pictures, likes, reply buttons.
+            Vibe: High engagement, social proof.
+            ${SAFETY_GUIDELINES}
+          `;
+      } else if (format === CreativeFormat.REMINDER_NOTIF || format === CreativeFormat.DM_NOTIFICATION) {
+           finalPrompt = `
+            A close-up of a smartphone lock screen.
+            ${textCopyInstruction}
+            Background: Wallpaper is blurry personal photo.
+            Lighting: Screen glow.
+            UI: Authentic iOS/Android notification banner.
+            ${SAFETY_GUIDELINES}
+          `;
       } else {
-        // Updated Story Logic: STRICT adherence to visualScene action
+        // Generic Story/UGC Logic
         // 1. Determine "Candid Environment"
         const randomEnv = Math.random();
         let environment = "inside a modern car during daytime, sunlight hitting face (car selfie vibe)";
@@ -215,25 +316,24 @@ export const generateCreativeImage = async (
         if (format === CreativeFormat.STORY_QNA) {
             uiOverlay = `Overlay: A standard Instagram 'Question Box' sticker (white rectangle with rounded corners) floating near the head. The text in the box asks: "${angle}?". There is a typed response below it.`;
         } else if (format === CreativeFormat.LONG_TEXT || format === CreativeFormat.STORY_POLL) {
-            uiOverlay = `Overlay: A large, massive block of text (long copy) covering the center of the image. It looks like a long Instagram story caption. The text is white with a translucent black background for readability.`;
+            uiOverlay = `Overlay: A large, massive block of text (long copy) covering the center of the image. The text is white with a translucent black background for readability. ${textCopyInstruction}`;
         } else if (format === CreativeFormat.HANDHELD_TWEET || format === CreativeFormat.TWITTER_REPOST) {
-            uiOverlay = `Overlay: A social media post screenshot (Twitter/X style) superimposed on the image. The text on the post is sharp and reads: "${angle}".`;
+            uiOverlay = `Overlay: A social media post screenshot (Twitter/X style) superimposed on the image. ${textCopyInstruction}`;
         } else if (format === CreativeFormat.PHONE_NOTES) {
-            uiOverlay = `A full screen screenshot of the Apple Notes App. Title: "${angle}". Below is a typed list related to ${project.productName}.`;
+            uiOverlay = `A full screen screenshot of the Apple Notes App. ${textCopyInstruction}`;
             environment = ""; 
         } else if (format === CreativeFormat.UGC_MIRROR) {
-            uiOverlay = `Overlay: Several 'Instagram Text Bubbles' floating around the subject. Text in bubbles: "${angle}".`;
+            uiOverlay = `Overlay: Several 'Instagram Text Bubbles' floating around the subject. ${textCopyInstruction}`;
         }
 
         if (environment) {
-            // Enhanced "Candid Realism" Prompt
             finalPrompt = `
               A brutally authentic, amateur photo taken from a first-person perspective (POV) or candid angle.
-              SCENE ACTION (Strictly follow this): ${visualScene} (e.g., looking at a pile of bills, staring in a mirror touching face, holding a broken object).
+              SCENE ACTION: ${visualScene}.
               Environment: Messy, real-life, unpolished background (e.g., messy bedroom, car dashboard, kitchen counter with clutter).
               Lighting: Bad overhead lighting or harsh flash (Direct Flash Photography).
               Quality: Slightly grainy, iPhone photo quality.
-              ${uiOverlay} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}. Make it look like a real Instagram Story.
+              ${uiOverlay} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.
             `;
         } else {
             finalPrompt = `${uiOverlay} ${appliedEnhancer} ${SAFETY_GUIDELINES}. Photorealistic UI render.`;
@@ -242,12 +342,12 @@ export const generateCreativeImage = async (
   }
   // === AAZAR SHAD'S WINNING FORMATS ===
   else if (format === CreativeFormat.VENN_DIAGRAM) {
-      finalPrompt = `A simple, minimalist Venn Diagram graphic on a solid, clean background. Left Circle Label: "Competitors" or "Others". Right Circle Label: "${project.productName}". The Intersection (Middle) contains the key benefit: "${angle}". Style: Corporate Memphis flat design or clean line art. High contrast text. The goal is to show that ONLY this product has the winning combination. ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
+      finalPrompt = `A simple, minimalist Venn Diagram graphic on a solid, clean background. Left Circle Label: "Competitors". Right Circle Label: "${project.productName}". The Intersection (Middle) contains the key benefit: "${angle}". Style: Corporate Memphis flat design or clean line art. High contrast text. The goal is to show that ONLY this product has the winning combination. ${appliedEnhancer} ${SAFETY_GUIDELINES}`;
   }
   else if (format === CreativeFormat.PRESS_FEATURE) {
       finalPrompt = `
         A realistic digital screenshot of an online news article.
-        Header: A recognized GENERIC media logo (like 'Daily Health', 'TechInsider' - DO NOT use the product logo in the header).
+        Header: A recognized GENERIC media logo (like 'Daily Health', 'TechInsider').
         Headline: "${angle}".
         Image: High-quality candid photo of ${project.productName} embedded in the article body.
         Vibe: It must look like an editorial piece, NOT an advertisement. Trustworthy, "As seen in".
@@ -267,7 +367,6 @@ export const generateCreativeImage = async (
   else if (format === CreativeFormat.OLD_ME_VS_NEW_ME) {
       finalPrompt = `A split-screen comparison image. Left Side labeled "Old Me": Shows the 'old habit' or competitor product being thrown in a trash can, or sitting in a gloomy, messy, grey environment. Right Side labeled "New Me": Shows ${project.productName} in a bright, organized, glowing environment. Emotion: Frustration vs Relief. Text Overlay: "Them" vs "Us" or "Before" vs "After". ${appliedEnhancer} ${culturePrompt} ${SAFETY_GUIDELINES}`;
   }
-  // NEW: SABRI SUBY HVCO VISUAL
   else if (format === CreativeFormat.LEAD_MAGNET_3D) {
       finalPrompt = `
         A high-quality 3D render of a physical book or spiral-bound report sitting on a modern wooden desk.
@@ -279,7 +378,6 @@ export const generateCreativeImage = async (
         ${appliedEnhancer} ${SAFETY_GUIDELINES}
       `;
   }
-  // NEW: MECHANISM X-RAY VISUAL
   else if (format === CreativeFormat.MECHANISM_XRAY) {
     if (isHealth) {
          finalPrompt = `
@@ -305,7 +403,12 @@ export const generateCreativeImage = async (
 
   // === OTHER FORMATS ===
   else if (format === CreativeFormat.STICKY_NOTE_REALISM) {
-    finalPrompt = `A real yellow post-it sticky note stuck on a surface. Handwritten black marker text on the note says: "${angle}". Sharp focus on the text, realistic paper texture, soft shadows. ${appliedEnhancer} ${moodPrompt}`;
+    finalPrompt = `
+        A real yellow post-it sticky note stuck on a surface (monitor or mirror).
+        ${textCopyInstruction}
+        Sharp focus on the text, realistic paper texture, soft shadows. 
+        ${appliedEnhancer} ${moodPrompt}
+    `;
   }
   else if (format === CreativeFormat.BENEFIT_POINTERS) {
     finalPrompt = `A high-quality product photography shot of ${project.productName}. Clean background. Sleek, modern graphic lines pointing to 3 key features. Style: "Anatomy Breakdown". ${appliedEnhancer} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
@@ -376,7 +479,6 @@ export const generateCarouselSlides = async (
   const slides: string[] = [];
   let totalInput = 0;
   let totalOutput = 0;
-  // Use a generic persona name since it's not passed, visual style handles the look.
   const personaName = "Audience"; 
 
   // Slide 1: Hook
