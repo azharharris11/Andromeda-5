@@ -1,3 +1,4 @@
+
 import { ProjectContext, CreativeFormat, GenResult, MarketAwareness } from "../../types";
 import { ai } from "./client";
 
@@ -9,16 +10,6 @@ const SAFETY_GUIDELINES = `
   4. NO Glitchy text unless specified.
   5. If humans are shown, they must look realistic with normal anatomy.
 `;
-
-const VISUAL_STYLES = [
-  "Shot on 35mm film, Fujifilm Pro 400H, grainy texture, nostalgic",
-  "High-end studio photography, softbox lighting, sharp focus, 8k resolution",
-  "Gen-Z aesthetic, flash photography, direct flash, high contrast, candid",
-  "Cinematic lighting, golden hour, shallow depth of field, bokeh background",
-  "Clean minimalist product photography, bright airy lighting, pastel tones"
-];
-
-const getRandomStyle = () => VISUAL_STYLES[Math.floor(Math.random() * VISUAL_STYLES.length)];
 
 // Helper to generate context-aware text instructions based on format
 const generateTextInstruction = (format: CreativeFormat, angle: string, project: ProjectContext): string => {
@@ -128,12 +119,24 @@ export const generateCreativeImage = async (
     If SE Asia -> Use Asian models, scooters, tropical greenery, warmer lighting.
   `;
 
+  // 1. UGLY / PATTERN INTERRUPT LOGIC (Defined early to affect moodPrompt)
+  const isUglyFormat = 
+    format === CreativeFormat.UGLY_VISUAL ||
+    format === CreativeFormat.MS_PAINT ||
+    format === CreativeFormat.REDDIT_THREAD ||
+    format === CreativeFormat.MEME;
+
   // === LOGIC UPGRADE: SENTIMENT AWARENESS ---
   const isNegativeAngle = /stop|avoid|warning|danger|don't|mistake|worst|kill|never/i.test(angle);
   let moodPrompt = "Lighting: Natural, inviting, high energy. Emotion: Positive, Solution-oriented.";
   
   if (isNegativeAngle) {
       moodPrompt = "Lighting: High contrast, dramatic shadows, moody atmosphere, perhaps a subtle red tint. Emotion: Serious, Urgent, Warning vibe. Subject should NOT be smiling. Show concern or frustration.";
+  }
+
+  // FORCE OVERRIDE MOOD FOR UGLY FORMATS (Resolves Conflict)
+  if (isUglyFormat) {
+     moodPrompt = "Lighting: Unflattering, harsh camera flash, fluorescent overhead lighting, or dim bedroom lighting. No aesthetic color grading. Emotion: Raw, Real, Stressed.";
   }
 
   // === LOGIC UPGRADE: LEAD MAGNET VISUAL COHERENCE ---
@@ -183,13 +186,6 @@ export const generateCreativeImage = async (
     default:
         subjectFocus = `SUBJECT: High context visual related to ${angle}.`;
   }
-
-  // 1. UGLY / PATTERN INTERRUPT LOGIC
-  const isUglyFormat = 
-    format === CreativeFormat.UGLY_VISUAL ||
-    format === CreativeFormat.MS_PAINT ||
-    format === CreativeFormat.REDDIT_THREAD ||
-    format === CreativeFormat.MEME;
     
   // 2. NATIVE STORY LOGIC
   const isNativeStory = 
@@ -239,7 +235,8 @@ export const generateCreativeImage = async (
               ${SAFETY_GUIDELINES}
           `;
       } else if (format === CreativeFormat.UGLY_VISUAL) {
-          finalPrompt = `A very low quality, cursed image vibe. ${subjectFocus}. ${technicalPrompt || visualScene}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
+          // Use visualScene preferred over technicalPrompt to avoid residual high-end style instructions
+          finalPrompt = `A very low quality, cursed image vibe. ${subjectFocus}. Action: ${visualScene}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}.`;
       } else if (format === CreativeFormat.REDDIT_THREAD) {
           finalPrompt = `
             A screenshot of a Reddit thread (Dark Mode). 
@@ -250,7 +247,7 @@ export const generateCreativeImage = async (
             ${SAFETY_GUIDELINES}
           `;
       } else {
-          finalPrompt = `${subjectFocus}. ${technicalPrompt}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
+          finalPrompt = `${subjectFocus}. Action: ${visualScene}. ${trashTierEnhancers} ${culturePrompt} ${moodPrompt} ${SAFETY_GUIDELINES}`;
       }
   }
   else if (isNativeStory) {
